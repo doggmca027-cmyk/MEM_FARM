@@ -130,6 +130,10 @@ on conflict (user_id, tier) do nothing;
 
 drop function if exists public.unlock_farm_slot(uuid, int);
 
+-- return type changes (earned_ton -> earned_gram); CREATE OR REPLACE can't alter
+-- an OUT-parameter row type, so drop the v1 signature first.
+drop function if exists public.claim_farm_income(uuid);
+
 create or replace function public.claim_farm_income(p_user_id uuid)
 returns table (
   earned_gram        numeric(18, 9),

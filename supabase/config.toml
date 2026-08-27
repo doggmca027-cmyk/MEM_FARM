@@ -1,0 +1,6 @@
+# Supabase CLI project config.
+# `project_id` links `supabase db push` / `functions deploy` to the remote project.
+project_id = "nimwavhsurvzpfurequa"
+
+[db]
+major_version = 17
