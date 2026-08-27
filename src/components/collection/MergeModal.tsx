@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Layers, Sparkles } from 'lucide-react';
-import { flattenCharacters, mergeFee, mergedIncome, useGameStore } from '../../store/useGameStore';
+import { ArrowRight, Flame, Layers, Skull, Sparkles, Zap } from 'lucide-react';
+import { flattenCharacters, mergeFee, useGameStore } from '../../store/useGameStore';
 import { MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../lib/meme';
-import { fmtGram } from '../../lib/format';
+import { fmtGram, formatNum } from '../../lib/format';
 import { fireJackpot, firePop } from '../../lib/confetti';
 import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
@@ -17,12 +17,15 @@ interface Props {
   level: number;
 }
 
-type Phase = 'ready' | 'playing' | 'result';
+type Phase = 'ready' | 'crafting' | 'result';
+const CRAFT_MS = 2000;
 
 export function MergeModal({ open, onClose, name, level }: Props) {
   const tiers = useGameStore((s) => s.tiers);
   const balanceGram = useGameStore((s) => s.balanceGram);
   const mergeCharacters = useGameStore((s) => s.mergeCharacters);
+  const mergeResult = useGameStore((s) => s.mergeResult);
+  const dismissMergeResult = useGameStore((s) => s.dismissMergeResult);
 
   const sample = useMemo(
     () => flattenCharacters(tiers).find((c) => c.name === name && c.level === level) ?? null,
@@ -32,111 +35,247 @@ export function MergeModal({ open, onClose, name, level }: Props) {
   const [phase, setPhase] = useState<Phase>('ready');
 
   useEffect(() => {
-    if (open) setPhase('ready');
-  }, [open, name, level]);
+    if (open) {
+      setPhase('ready');
+      dismissMergeResult();
+    }
+  }, [open, name, level, dismissMergeResult]);
 
-  if (!sample) return <Modal open={open} onClose={onClose} title="Злиття" accent="#A855F7"><div /></Modal>;
+  // outcome landed → reveal it
+  useEffect(() => {
+    if (phase !== 'crafting' || !mergeResult) return;
+    setPhase('result');
+    if (mergeResult.status === 'FAIL') {
+      haptic.notify('error');
+    } else if (mergeResult.delta >= 2) {
+      haptic.notify('success');
+      fireJackpot();
+    } else {
+      haptic.notify('success');
+      firePop();
+    }
+  }, [phase, mergeResult]);
 
-  const hex = RARITY_HEX[sample.rarity];
-  const fee = mergeFee(sample.tier);
+  const display = mergeResult
+    ? {
+        name: mergeResult.name,
+        memeType: mergeResult.memeType,
+        rarity: mergeResult.rarity,
+        tier: mergeResult.tier,
+      }
+    : sample;
+
+  if (!display) {
+    return (
+      <Modal open={open} onClose={onClose} title="Злиття" accent="#A855F7">
+        <div />
+      </Modal>
+    );
+  }
+
+  const hex = RARITY_HEX[display.rarity];
+  const fee = mergeFee(display.tier);
   const canAfford = balanceGram + 1e-9 >= fee;
-  const afterIncome = mergedIncome(sample.baseIncome, level + 1);
-  const afterPower = Math.round(sample.power * 1.75);
+
+  const close = () => {
+    dismissMergeResult();
+    onClose();
+  };
 
   const run = () => {
-    if (!canAfford || phase !== 'ready') return;
-    setPhase('playing');
+    if (!canAfford || phase !== 'ready' || !sample) return;
+    setPhase('crafting');
     haptic.impact('heavy');
-    window.setTimeout(() => {
-      mergeCharacters(sample.name, level);
-      firePop();
-      window.setTimeout(fireJackpot, 120);
-      haptic.notify('success');
-      setPhase('result');
-    }, 850);
+    window.setTimeout(() => mergeCharacters(sample.name, level), CRAFT_MS);
   };
+
+  const isCrit = phase === 'result' && mergeResult && mergeResult.delta >= 2;
+  const isFail = phase === 'result' && mergeResult?.status === 'FAIL';
+  const glow = isCrit ? '#FACC15' : hex;
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       accent="#A855F7"
       title={
         <span className="inline-flex items-center gap-2">
           <Layers className="h-5 w-5 text-neon-purple" strokeWidth={2.5} />
-          Злиття · {sample.name}
+          Злиття · {display.name}
         </span>
       }
     >
-      <div className="relative grid min-h-[160px] place-items-center py-2">
+      {/* ============ STAGE ============ */}
+      <div className="relative grid min-h-[176px] place-items-center overflow-hidden py-2">
+        {/* result flash */}
+        {phase === 'result' && (
+          <motion.div
+            key={`flash-${mergeResult?.roll}`}
+            className="pointer-events-none absolute inset-0 -m-8"
+            initial={{ opacity: 0.85, scale: 0.4 }}
+            animate={{ opacity: [0.85, 0.15, 0], scale: 1.6 }}
+            transition={{ duration: 0.9 }}
+            style={{
+              background: `radial-gradient(circle, ${isFail ? '#EC4899' : glow}, transparent 65%)`,
+            }}
+          />
+        )}
+
         <AnimatePresence mode="wait">
           {phase !== 'result' ? (
-            <motion.div key="pair" className="relative flex items-center gap-6" exit={{ opacity: 0 }}>
+            <motion.div key="pair" className="relative flex items-center gap-5" exit={{ opacity: 0 }}>
               {[-1, 1].map((dir) => (
                 <motion.div
                   key={dir}
-                  initial={{ x: dir * 70, rotate: dir * 8, opacity: 0 }}
+                  initial={{ x: dir * 60, opacity: 0 }}
                   animate={
-                    phase === 'playing'
-                      ? { x: 0, rotate: 0, opacity: 1, scale: 0.9 }
-                      : { x: dir * 8, rotate: dir * 6, opacity: 1 }
+                    phase === 'crafting'
+                      ? {
+                          x: dir * 6,
+                          opacity: 1,
+                          scale: [1, 1.08, 0.94, 1],
+                          rotate: [0, dir * -5, dir * 5, 0],
+                        }
+                      : { x: dir * 6, opacity: 1, rotate: dir * 5 }
                   }
-                  transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-                  className="grid h-20 w-20 place-items-center rounded-2xl border-2 border-black bg-farm-deep text-3xl"
+                  transition={
+                    phase === 'crafting'
+                      ? { duration: 0.45, repeat: Infinity, ease: 'easeInOut' }
+                      : { type: 'spring', stiffness: 200, damping: 18 }
+                  }
+                  className="relative grid h-20 w-20 place-items-center rounded-2xl border-2 border-black bg-farm-deep text-3xl"
                   style={{ borderColor: hex, boxShadow: `0 0 14px ${hex}88` }}
                 >
-                  {MEME_EMOJI[sample.memeType]}
+                  {MEME_EMOJI[display.memeType]}
                   <span className="absolute -bottom-2 rounded-md border-2 border-black bg-farm-card px-1 text-[9px] font-extrabold text-white">
                     Lv.{level}
                   </span>
                 </motion.div>
               ))}
-              {phase === 'playing' && (
-                <motion.div
-                  className="pointer-events-none absolute inset-0 -m-10"
-                  initial={{ opacity: 0, scale: 0.3 }}
-                  animate={{ opacity: [0, 0.9, 0], scale: 1.6 }}
-                  transition={{ duration: 0.85 }}
-                  style={{ background: `radial-gradient(circle, ${hex}, transparent 65%)` }}
-                />
+              {phase === 'crafting' && (
+                <>
+                  <motion.div
+                    className="pointer-events-none absolute inset-0 -m-12"
+                    animate={{ opacity: [0.15, 0.6, 0.15], scale: [0.9, 1.25, 0.9] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    style={{ background: `radial-gradient(circle, ${hex}, transparent 60%)` }}
+                  />
+                  <motion.span
+                    className="absolute -bottom-6 font-display text-sm uppercase tracking-widest text-neon-purple"
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    Крафт…
+                  </motion.span>
+                </>
               )}
+            </motion.div>
+          ) : isFail ? (
+            <motion.div key="fail" className="relative flex flex-col items-center">
+              <motion.div
+                initial={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                animate={{ opacity: 0, y: -34, scale: 1.1, filter: 'blur(10px)' }}
+                transition={{ duration: 0.9, ease: 'easeOut' }}
+                className="grid h-20 w-20 place-items-center rounded-2xl border-2 border-neon-pink bg-farm-deep text-3xl"
+              >
+                {MEME_EMOJI[display.memeType]}
+              </motion.div>
+              <Skull className="absolute top-3 h-10 w-10 text-neon-pink" strokeWidth={2.5} />
             </motion.div>
           ) : (
             <motion.div
-              key="result"
-              initial={{ scale: 0.5, opacity: 0, rotateY: 140 }}
+              key="win"
+              initial={{ scale: 0.5, opacity: 0, rotateY: 150 }}
               animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="grid h-24 w-24 place-items-center rounded-3xl border-2 border-black bg-farm-deep text-4xl"
-              style={{ borderColor: hex, boxShadow: `0 0 34px ${hex}` }}
+              transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+              className="relative grid h-24 w-24 place-items-center rounded-3xl border-2 border-black bg-farm-deep text-4xl"
+              style={{ borderColor: glow, boxShadow: `0 0 36px ${glow}` }}
             >
-              {MEME_EMOJI[sample.memeType]}
-              <span className="absolute -bottom-2 rounded-md border-2 border-black bg-neon-purple px-1.5 text-[10px] font-extrabold text-white">
-                Lv.{level + 1}
+              {MEME_EMOJI[display.memeType]}
+              <span
+                className="absolute -bottom-2 rounded-md border-2 border-black px-1.5 text-[10px] font-extrabold text-white"
+                style={{ backgroundColor: isCrit ? '#FACC15' : '#A855F7', color: isCrit ? '#000' : '#fff' }}
+              >
+                Lv.{mergeResult?.newLevel}
               </span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* before -> after */}
-      <div className="rounded-2xl border-2 border-black bg-farm-card/70 p-3">
-        <Row
-          label="Рівень"
-          from={`Lv.${level} ×2`}
-          to={`Lv.${level + 1}`}
-        />
-        <Row
-          label="Дохід"
-          from={`${fmtGram(sample.currentIncome, 3)} /d`}
-          to={`${fmtGram(afterIncome, 3)} /d`}
-        />
-        <Row label="Сила" from={String(sample.power)} to={String(afterPower)} />
-        <div className="mt-1 text-[10px] text-white/40">
-          Формула: base × 1.75^(рівень−1)
-        </div>
-      </div>
+      {/* ============ READY / CRAFTING ============ */}
+      {phase !== 'result' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl border-2 border-black bg-neon-lime/15 py-2 text-center">
+              <div className="font-display text-xl text-neon-lime text-stroke-sm">70%</div>
+              <div className="text-[9px] font-extrabold uppercase text-white/50">Успіх</div>
+            </div>
+            <div className="rounded-2xl border-2 border-black bg-neon-pink/15 py-2 text-center">
+              <div className="inline-flex items-center gap-1 font-display text-xl text-neon-pink text-stroke-sm">
+                <Flame className="h-4 w-4" strokeWidth={3} />
+                30%
+              </div>
+              <div className="text-[9px] font-extrabold uppercase text-white/50">Ризик згоряння</div>
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] font-bold text-white/50">
+            <span>+1 · 55%</span>
+            <span className="text-neon-cyan">
+              <Zap className="mr-0.5 inline h-3 w-3" strokeWidth={3} />+2 · 10%
+            </span>
+            <span className="text-neon-yellow">🔥 +3 · 4%</span>
+            <span className="text-neon-yellow">👑 +4 · 1%</span>
+          </div>
+        </>
+      )}
 
+      {/* ============ RESULT ============ */}
+      {phase === 'result' && mergeResult && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          {isFail ? (
+            <div className="text-center">
+              <div className="font-display text-2xl text-neon-pink text-stroke">💥 КАРТА ЗГОРІЛА</div>
+              <div className="mt-1 text-xs font-bold text-white/50">
+                Матеріал втрачено · залишилась 1 карта Lv.{mergeResult.fromLevel}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="text-center">
+                {isCrit ? (
+                  <motion.div
+                    animate={{ scale: [1, 1.06, 1] }}
+                    transition={{ repeat: 3, duration: 0.35 }}
+                    className="font-display text-xl text-neon-yellow text-stroke"
+                  >
+                    <Sparkles className="mr-1 inline h-5 w-5" strokeWidth={3} />
+                    CRITICAL UPGRADE +{mergeResult.delta} LVL!
+                  </motion.div>
+                ) : (
+                  <div className="font-display text-xl text-neon-lime text-stroke">
+                    Lv.{mergeResult.fromLevel} → Lv.{mergeResult.newLevel}
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 rounded-2xl border-2 border-black bg-farm-card/70 p-3">
+                <Row
+                  label="Дохід"
+                  from={`${fmtGram(mergeResult.incomeBefore, 3)} /d`}
+                  to={`${fmtGram(mergeResult.incomeAfter, 3)} /d`}
+                />
+                <Row
+                  label="Сила"
+                  from={formatNum(mergeResult.powerBefore)}
+                  to={formatNum(mergeResult.powerAfter)}
+                />
+              </div>
+            </>
+          )}
+        </motion.div>
+      )}
+
+      {/* ============ FOOTER ============ */}
       <div className="mt-3 flex items-center justify-between">
         <div className="inline-flex items-center gap-1 text-xs font-bold text-white/60">
           Комісія:
@@ -146,21 +285,26 @@ export function MergeModal({ open, onClose, name, level }: Props) {
           </span>
         </div>
         {phase === 'result' ? (
-          <GameButton accent="lime" onClick={onClose}>
-            Забрати
+          <GameButton accent={isFail ? 'pink' : 'lime'} onClick={close}>
+            {isFail ? 'Закрити' : 'Забрати'}
           </GameButton>
         ) : (
-          <GameButton accent="violet" disabled={!canAfford || phase === 'playing'} onClick={run}>
+          <GameButton
+            accent="violet"
+            disabled={!canAfford || phase === 'crafting' || !sample}
+            onClick={run}
+          >
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-4 w-4" strokeWidth={3} />
-              Злити
+              {phase === 'crafting' ? 'Крафт…' : 'Злити'}
             </span>
           </GameButton>
         )}
       </div>
 
       <div className="mt-2 text-center text-[10px] uppercase tracking-wide text-white/35">
-        {RARITY_LABEL[sample.rarity]} · Tier {sample.tier}
+        {RARITY_LABEL[display.rarity]} · Tier {display.tier}
+        {phase === 'result' && mergeResult ? ` · roll ${mergeResult.roll}` : ''}
       </div>
     </Modal>
   );

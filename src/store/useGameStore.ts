@@ -5,6 +5,7 @@ import type {
   FarmState,
   HatItem,
   MemeCharacter,
+  MergeOutcome,
   TierId,
   TierRow,
 } from '../types/game';
@@ -84,6 +85,7 @@ export function nextLevelPower(current: number): number {
 }
 
 const MERGE_GROWTH = 1.75;
+export const MERGE_LEVEL_CAP = 10;
 
 /** Merge: income at a level = base * 1.75^(level-1). */
 export function mergedIncome(baseIncome: number, newLevel: number): number {
@@ -93,6 +95,27 @@ export function mergedIncome(baseIncome: number, newLevel: number): number {
 /** Merge sink fee, GRAM — scales with tier: 0.02 * 2^(tier-1). */
 export function mergeFee(tier: TierId): number {
   return round4(0.02 * 2 ** (tier - 1));
+}
+
+/**
+ * Risk/Reward merge roll (1..100):
+ *   1..30  FAIL      — material burns, survivor stays at level N
+ *   31..85 SUCCESS   — +1 level
+ *   86..95 CRIT      — +2 levels
+ *   96..99 CRIT      — +3 levels
+ *   100    CRIT      — +4 levels (jackpot)
+ */
+export function rollMerge(rng: () => number = Math.random): {
+  status: 'FAIL' | 'SUCCESS' | 'CRIT';
+  delta: number;
+  roll: number;
+} {
+  const n = Math.floor(rng() * 100) + 1;
+  if (n <= 30) return { status: 'FAIL', delta: 0, roll: n };
+  if (n <= 85) return { status: 'SUCCESS', delta: 1, roll: n };
+  if (n <= 95) return { status: 'CRIT', delta: 2, roll: n };
+  if (n <= 99) return { status: 'CRIT', delta: 3, roll: n };
+  return { status: 'CRIT', delta: 4, roll: n };
 }
 
 // --- quests / streak / pvp -------------------------------------------------
@@ -202,6 +225,8 @@ interface GameStore {
   reveal: RevealPayload | null;
   /** Non-null while the BattleModal is showing a fresh raid result. */
   battle: BattleResult | null;
+  /** Non-null while the MergeModal is showing a fresh merge outcome. */
+  mergeResult: MergeOutcome | null;
 
   // quests / streak
   quests: Quest[];
@@ -245,8 +270,9 @@ interface GameStore {
 
   /** Study: spend XP → +level, income ×2, power ×1.5. Live path: `study_upgrade_character`. */
   upgradeCharacter: (characterId: string) => void;
-  /** Merge 2 same-name, same-level cards → 1 card at level+1. Live path: `merge_user_characters`. */
+  /** Risk/Reward merge of 2 same-name, same-level cards → sets `mergeResult`. Live: `merge_user_characters`. */
   mergeCharacters: (name: string, level: number) => void;
+  dismissMergeResult: () => void;
   equipHat: (tier: TierId, hatId: string | null) => void;
 
   /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
@@ -298,6 +324,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   reveal: null,
   battle: null,
+  mergeResult: null,
 
   quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
   questsResetAt: bootNow,
@@ -609,17 +636,37 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     );
     if (!owner) return;
     if (s.balanceGram + 1e-9 < mergeFee(owner.tier)) return;
+    const sample = owner.characters.find((c) => c.name === name && c.level === level)!;
 
     if (s.mode === 'live') {
       try {
-        const sample = owner.characters.find((c) => c.name === name && c.level === level)!;
-        await mergeCharactersRPC(`t${sample.tier}_c${sample.cardSlot}`, level);
+        const res = await mergeCharactersRPC(`t${sample.tier}_c${sample.cardSlot}`, level);
         await refetchLive(set);
+        set({
+          mergeResult: {
+            status: res.status,
+            delta: res.delta,
+            roll: res.roll,
+            fromLevel: level,
+            newLevel: res.newLevel,
+            name: sample.name,
+            memeType: sample.memeType,
+            rarity: sample.rarity,
+            tier: sample.tier,
+            fee: res.fee,
+            incomeBefore: sample.currentIncome,
+            incomeAfter: res.newIncomeDay,
+            powerBefore: sample.power,
+            powerAfter: res.newPower,
+          },
+        });
       } catch (err) {
         console.warn('[store] merge_user_characters RPC failed:', err);
       }
       return;
     }
+
+    const outcome = rollMerge();
 
     set((st) => {
       const own = st.tiers.find(
@@ -629,22 +676,31 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       const fee = mergeFee(own.tier);
       if (st.balanceGram + 1e-9 < fee) return st;
 
-      const [a, b] = own.characters.filter((c) => c.name === name && c.level === level);
-      const newLevel = level + 1;
-      const merged: MemeCharacter = {
-        ...a,
-        id: newInstanceId(),
-        level: newLevel,
-        currentIncome: mergedIncome(a.baseIncome, newLevel),
-        power: round4(a.power * 1.75),
-      };
+      const dupes = own.characters.filter((c) => c.name === name && c.level === level);
+      const survivor = dupes[0];
+      const material = dupes[1];
 
-      const consumed = new Set([a.id, b.id]);
-      const tiers = st.tiers.map((r) =>
-        r.tier === own.tier
-          ? { ...r, characters: [...r.characters.filter((c) => !consumed.has(c.id)), merged] }
-          : r,
-      );
+      const isFail = outcome.status === 'FAIL';
+      const newLevel = isFail ? level : Math.min(MERGE_LEVEL_CAP, level + outcome.delta);
+      const incomeAfter = isFail
+        ? survivor.currentIncome
+        : mergedIncome(survivor.baseIncome, newLevel);
+      const powerAfter = isFail
+        ? survivor.power
+        : round4(survivor.power * Math.pow(1.75, newLevel - level));
+
+      const tiers = st.tiers.map((r) => {
+        if (r.tier !== own.tier) return r;
+        const characters = r.characters
+          .filter((c) => c.id !== material.id)
+          .map((c) =>
+            c.id === survivor.id && !isFail
+              ? { ...c, level: newLevel, currentIncome: incomeAfter, power: powerAfter }
+              : c,
+          );
+        return { ...r, characters };
+      });
+
       const t = Date.now();
       const tx: Transaction = {
         id: `tx-${t}`,
@@ -655,15 +711,34 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         txHash: mockHash(),
       };
       const incomePerDay = totalIncome(tiers, st.hats);
+
       return {
         balanceGram: round4(st.balanceGram - fee),
         tiers,
         transactions: [tx, ...st.transactions],
         incomePerDay,
         farm: { ...st.farm, totalIncomePerDay: incomePerDay },
+        mergeResult: {
+          status: outcome.status,
+          delta: isFail ? 0 : newLevel - level,
+          roll: outcome.roll,
+          fromLevel: level,
+          newLevel,
+          name: survivor.name,
+          memeType: survivor.memeType,
+          rarity: survivor.rarity,
+          tier: own.tier,
+          fee,
+          incomeBefore: survivor.currentIncome,
+          incomeAfter,
+          powerBefore: survivor.power,
+          powerAfter,
+        },
       };
     });
   },
+
+  dismissMergeResult: () => set({ mergeResult: null }),
 
   equipHat: (tier, hatId) =>
     set((s) => {

@@ -358,14 +358,37 @@ export async function studyUpgradeRPC(characterId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function mergeCharactersRPC(templateId: string, level: number): Promise<void> {
+export interface MergeRpcResult {
+  status: 'FAIL' | 'SUCCESS' | 'CRIT';
+  delta: number;
+  roll: number;
+  newLevel: number;
+  fee: number;
+  newIncomeDay: number;
+  newPower: number;
+}
+
+export async function mergeCharactersRPC(
+  templateId: string,
+  level: number,
+): Promise<MergeRpcResult> {
   const uid = await requireUserId();
-  const { error } = await client().rpc('merge_user_characters', {
+  const { data, error } = await client().rpc('merge_user_characters', {
     p_user_id: uid,
     p_template_id: templateId,
     p_level: level,
   });
   if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    status: (row?.status ?? 'FAIL') as MergeRpcResult['status'],
+    delta: Number(row?.delta) || 0,
+    roll: Number(row?.roll) || 0,
+    newLevel: Number(row?.new_level) || level,
+    fee: num(row?.fee),
+    newIncomeDay: num(row?.new_income_day),
+    newPower: num(row?.new_power),
+  };
 }
 
 export async function fetchTransactions(limit = 50): Promise<Transaction[]> {

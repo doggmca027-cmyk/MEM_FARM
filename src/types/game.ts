@@ -58,6 +58,27 @@ export interface TierRow {
   characters: MemeCharacter[];
 }
 
+export type MergeStatus = 'FAIL' | 'SUCCESS' | 'CRIT';
+
+/** Outcome of a Risk/Reward merge attempt — drives the MergeModal result screen. */
+export interface MergeOutcome {
+  status: MergeStatus;
+  /** Levels gained: 0 on FAIL, 1 on SUCCESS, 2..4 on CRIT. */
+  delta: number;
+  roll: number; // 1..100
+  fromLevel: number;
+  newLevel: number;
+  name: string;
+  memeType: MemeType;
+  rarity: Rarity;
+  tier: TierId;
+  fee: number;
+  incomeBefore: number;
+  incomeAfter: number;
+  powerBefore: number;
+  powerAfter: number;
+}
+
 export interface FarmState {
   totalIncomePerDay: number;
   /** epoch ms of the last successful claim. */
