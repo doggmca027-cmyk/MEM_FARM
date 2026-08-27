@@ -18,7 +18,7 @@ import { StudyModal } from '../components/farm/StudyModal';
 
 const TIERS: TierId[] = [1, 2, 3, 4, 5, 6];
 const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-const TOTAL_CARDS = 30;
+const TOTAL_CARDS = 60; // 6 tiers x 10 slots
 
 export function CollectionScreen() {
   const tiers = useGameStore((s) => s.tiers);

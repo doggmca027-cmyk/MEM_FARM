@@ -76,12 +76,12 @@ export function TierSlotRow({ row, index, expanded, onToggle, onOpenHat, onRoll 
           Tier {row.tier}
         </span>
 
-        {/* rarity dots */}
-        <span className="flex flex-none items-center gap-1">
+        {/* rarity dots — 10 slots, 5 per row */}
+        <span className="flex w-[52px] flex-none flex-wrap gap-0.5">
           {pool.map((c) => (
             <span
               key={c.slot}
-              className="h-2 w-2 rounded-full border border-black"
+              className="h-1.5 w-1.5 rounded-full border border-black"
               style={{
                 backgroundColor: row.discovered.includes(c.slot) ? RARITY_HEX[c.rarity] : '#00000055',
               }}
@@ -89,7 +89,9 @@ export function TierSlotRow({ row, index, expanded, onToggle, onOpenHat, onRoll 
           ))}
         </span>
 
-        <span className="ml-auto flex-none font-display text-sm text-stroke-sm">{discovered}/5</span>
+        <span className="ml-auto flex-none font-display text-sm text-stroke-sm">
+          {discovered}/{pool.length}
+        </span>
         <span className="flex-none inline-flex items-center gap-1 rounded-lg border-2 border-black bg-farm-deep px-1.5 py-0.5 text-[11px] font-bold leading-none text-neon-cyan">
           <GramIcon className="h-3.5 w-3.5" />
           {fmtGram(row.costGram)}

@@ -885,7 +885,7 @@ function applyRoll(
       transactions: [tx, ...s.transactions],
       incomePerDay,
       farm: { ...s.farm, totalIncomePerDay: incomePerDay },
-      reveal: { tier, card, character, isNewDiscovery: isNew, jackpot: card.slot === 5 },
+      reveal: { tier, card, character, isNewDiscovery: isNew, jackpot: card.rarity === 'legendary' },
       quests: bumpQuests(s.quests, 'tier_roll'),
     };
   });
@@ -958,7 +958,7 @@ export function groupCollection(tiers: TierRow[]): CollectionGroup[] {
   return [...map.values()].sort((a, b) => b.sample.currentIncome - a.sample.currentIncome);
 }
 
-/** Distinct cards discovered across all six tiers (out of 30). */
+/** Distinct cards discovered across all six tiers (out of 60). */
 export const selectDiscoveredCount = (s: GameStore): number =>
   s.tiers.reduce((sum, r) => sum + r.discovered.length, 0);
 
