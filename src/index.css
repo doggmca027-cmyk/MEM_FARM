@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  background: #120924;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer utilities {
+  .text-stroke {
+    -webkit-text-stroke: 2px #000;
+    paint-order: stroke fill;
+  }
+  .text-stroke-sm {
+    -webkit-text-stroke: 1.5px #000;
+    paint-order: stroke fill;
+  }
+
+  /* diagonal candy stripes — for card / slot underlays */
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.07) 0,
+      rgba(255, 255, 255, 0.07) 10px,
+      rgba(255, 255, 255, 0) 10px,
+      rgba(255, 255, 255, 0) 20px
+    );
+  }
+
+  /* diamond grid */
+  .bg-diamond {
+    background-image:
+      linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.05) 75%),
+      linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.05) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+
+  .safe-t {
+    padding-top: max(var(--safe-top), 12px);
+  }
+  .safe-b {
+    padding-bottom: max(var(--safe-bottom), 12px);
+  }
+  /* raw safe-area values for custom spacing */
+  .pt-safe {
+    padding-top: var(--safe-top);
+  }
+  .pb-safe {
+    padding-bottom: var(--safe-bottom);
+  }
+}
+
+/* TON Connect button — round the corners to match the game UI */
+[data-tc-connect-button] > button {
+  border-radius: 14px !important;
+}

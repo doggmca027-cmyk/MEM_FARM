@@ -1,0 +1,1006 @@
+import { create } from 'zustand';
+import type {
+  CardSlot,
+  Equipment,
+  FarmState,
+  HatItem,
+  MemeCharacter,
+  TierId,
+  TierRow,
+} from '../types/game';
+import type { Transaction } from '../types/finance';
+import type { BattleResult, Quest, QuestId, RaidOpponent, Reward } from '../types/quests';
+import type { ReferralFriend, ReferralStats } from '../types/referral';
+import { round4 } from '../lib/format';
+import { isSameUtcDay, utcDaysBetween } from '../lib/time';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
+import { DAILY_CHEST_REWARD, DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
+import {
+  claimIncomeRPC,
+  claimReferralRewardsRPC,
+  fetchFarmData,
+  fetchReferralData,
+  fetchTransactions,
+  fetchUserProfile,
+  mergeCharactersRPC,
+  requestWithdrawalRPC,
+  rollTierRPC,
+  studyUpgradeRPC,
+  type ProfileData,
+} from '../services/api';
+
+export type NavTab = 'quests' | 'farm' | 'raid' | 'invite' | 'wallet';
+export type DataMode = 'mock' | 'live';
+export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+const COOLDOWN_MS = 8 * 60 * 60 * 1000;
+/** Remaining on first load, near the top of the window: ~07:29:xx. */
+const INITIAL_REMAINING_MS = (7 * 3600 + 29 * 60 + 12) * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const bootNow = Date.now();
+const seedLastClaimAt = bootNow - (COOLDOWN_MS - INITIAL_REMAINING_MS);
+const seedNextClaimAt = seedLastClaimAt + COOLDOWN_MS;
+
+function mockHash(): string {
+  const hex = '0123456789abcdef';
+  let out = '';
+  for (let i = 0; i < 12; i++) out += hex[Math.floor(Math.random() * 16)];
+  return `EQ${out}…${out.slice(0, 4)}`;
+}
+
+function newInstanceId(): string {
+  return `uc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/** `tier-<n>` — the key stored on `HatItem.equippedTierId`. */
+export const tierKey = (tier: TierId): string => `tier-${tier}`;
+
+// --- withdrawal rules --------------------------------------------------
+
+export const WITHDRAW_MIN = 0.3; // GRAM
+export const WITHDRAW_FEE_MIN = 0.01; // GRAM
+export const WITHDRAW_FEE_PCT = 0.02; // 2%
+export const WITHDRAW_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+/** Platform fee for a withdrawal: max(0.01, amount * 2%). */
+export function withdrawalFee(amount: number): number {
+  return round4(Math.max(WITHDRAW_FEE_MIN, amount * WITHDRAW_FEE_PCT));
+}
+
+export function upgradeCostXp(level: number): number {
+  return Math.round(250 * Math.pow(1.8, level - 1));
+}
+
+/** Study: doubles daily income per level. */
+export function nextLevelIncome(current: number): number {
+  return round4(current * 2);
+}
+
+/** Study: +50% PvP power per level. */
+export function nextLevelPower(current: number): number {
+  return round4(current * 1.5);
+}
+
+const MERGE_GROWTH = 1.75;
+
+/** Merge: income at a level = base * 1.75^(level-1). */
+export function mergedIncome(baseIncome: number, newLevel: number): number {
+  return round4(baseIncome * Math.pow(MERGE_GROWTH, newLevel - 1));
+}
+
+/** Merge sink fee, GRAM — scales with tier: 0.02 * 2^(tier-1). */
+export function mergeFee(tier: TierId): number {
+  return round4(0.02 * 2 ** (tier - 1));
+}
+
+// --- quests / streak / pvp -------------------------------------------------
+
+export const MAX_RAID_TICKETS = 5;
+export const TICKET_REFILL_MS = 30 * 60 * 1000; // +1 ticket / 30 min
+export const DAILY_BUFF_MS = 24 * 60 * 60 * 1000;
+export const DAILY_BUFF_PCT = 10;
+
+/** Rating gained on a win / lost on a defeat, scaled by the odds you beat. */
+export function pvpRatingDelta(won: boolean, winChance: number): number {
+  if (won) return Math.max(8, Math.round(30 * (1 - winChance)) + 12);
+  return -Math.max(6, Math.round(18 * winChance));
+}
+
+/** Immutably advance a daily-quest counter (clamped to its goal). */
+function bumpQuests(quests: Quest[], id: QuestId, n = 1): Quest[] {
+  return quests.map((q) =>
+    q.id === id && !q.claimed ? { ...q, progress: Math.min(q.goal, q.progress + n) } : q,
+  );
+}
+
+// --- income math --------------------------------------------------------
+
+function tierIncome(row: TierRow, hats: HatItem[]): number {
+  const base = row.characters.reduce((sum, c) => sum + c.currentIncome, 0);
+  const hat = hats.find((h) => h.equippedTierId === tierKey(row.tier));
+  return base * (1 + (hat?.bonusPct ?? 0) / 100);
+}
+
+function totalIncome(tiers: TierRow[], hats: HatItem[]): number {
+  return round4(tiers.reduce((sum, r) => sum + tierIncome(r, hats), 0));
+}
+
+function characterFromCard(card: GachaCard): MemeCharacter {
+  return {
+    id: newInstanceId(),
+    name: card.name,
+    memeType: card.memeType,
+    rarity: card.rarity,
+    level: 1,
+    baseIncome: card.incomePerDay,
+    currentIncome: card.incomePerDay,
+    power: card.power,
+    imageUrl: '',
+    tier: card.tier,
+    cardSlot: card.slot,
+  };
+}
+
+// --- seed data ---------------------------------------------------------
+
+function seedInstance(tier: TierId, slot: CardSlot, n: number): MemeCharacter {
+  const card = tierPool(tier)[slot - 1];
+  return { ...characterFromCard(card), id: `uc-seed-t${tier}s${slot}-${n}` };
+}
+
+const HATS: HatItem[] = [
+  { id: 'hat-pixel', name: 'Pixel Cap', bonusPct: 10, rarity: 'uncommon', emoji: '🧢', equippedTierId: null },
+  { id: 'hat-magic', name: 'Magic Hat', bonusPct: 15, rarity: 'rare', emoji: '🎩', equippedTierId: null },
+  { id: 'hat-cursed', name: 'Cursed Cap', bonusPct: 25, rarity: 'epic', emoji: '🪖', equippedTierId: null },
+  { id: 'hat-crown', name: 'Gold Crown', bonusPct: 30, rarity: 'legendary', emoji: '👑', equippedTierId: null },
+];
+
+const SEED_TIERS: TierRow[] = TIER_IDS.map((tier) => {
+  const row: TierRow = { tier, costGram: TIER_COST[tier], hat: null, discovered: [], characters: [] };
+  if (tier === 1) {
+    row.discovered = [1, 2];
+    row.characters = [seedInstance(1, 1, 1), seedInstance(1, 1, 2), seedInstance(1, 2, 1)];
+  } else if (tier === 2) {
+    row.discovered = [1];
+    row.characters = [seedInstance(2, 1, 1)];
+  }
+  return row;
+});
+
+const INCOME_PER_DAY = totalIncome(SEED_TIERS, HATS);
+
+// --- store -----------------------------------------------------------------
+
+export interface RevealPayload {
+  tier: TierId;
+  card: GachaCard;
+  character: MemeCharacter;
+  isNewDiscovery: boolean;
+  jackpot: boolean;
+}
+
+interface GameStore {
+  mode: DataMode;
+  status: LoadStatus;
+  profile: ProfileData | null;
+  activeTab: NavTab;
+
+  balanceGram: number;
+  pendingGram: number;
+  lockedGram: number;
+  incomePerDay: number;
+  xp: number;
+
+  farm: FarmState;
+  tiers: TierRow[];
+  hats: HatItem[];
+  transactions: Transaction[];
+
+  /** Non-null while the GachaRevealModal is showing a fresh pull. */
+  reveal: RevealPayload | null;
+  /** Non-null while the BattleModal is showing a fresh raid result. */
+  battle: BattleResult | null;
+
+  // quests / streak
+  quests: Quest[];
+  questsResetAt: number;
+  streakDay: number; // consecutive days claimed, 0..7
+  lastCheckInAt: number | null;
+  dailyChestClaimed: boolean;
+  fragments: number;
+  dailyBuffUntil: number; // epoch ms, 0 = none
+  dailyBuffPct: number;
+
+  // pvp
+  raidTickets: number;
+  lastTicketRefillAt: number;
+  pvpRating: number;
+
+  // referrals
+  referralCode: string;
+  referralStats: ReferralStats;
+  referralsList: ReferralFriend[];
+
+  invites: number;
+
+  /** epoch ms of the last withdrawal request (24h cooldown), or null. */
+  lastWithdrawAt: number | null;
+
+  setActiveTab: (tab: NavTab) => void;
+  hydrate: () => Promise<void>;
+  accrue: () => void;
+  /** Refill raid tickets over time + roll daily quests over to a new UTC day. */
+  tickDaily: () => void;
+  claim: () => void;
+  /** Optimistic PENDING deposit — credited to the balance only on confirmation. */
+  deposit: (amount: number, txHash?: string | null) => void;
+  /** PENDING withdrawal: locks `amount` from the balance now, `fee` + `netAmount` recorded. */
+  requestWithdrawal: (amount: number, address: string) => void;
+
+  /** Buy + weighted-roll one card from a tier's 5-card pool. */
+  rollTier: (tier: TierId) => void;
+  dismissReveal: () => void;
+
+  /** Study: spend XP → +level, income ×2, power ×1.5. Live path: `study_upgrade_character`. */
+  upgradeCharacter: (characterId: string) => void;
+  /** Merge 2 same-name, same-level cards → 1 card at level+1. Live path: `merge_user_characters`. */
+  mergeCharacters: (name: string, level: number) => void;
+  equipHat: (tier: TierId, hatId: string | null) => void;
+
+  /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
+  claimDailyCheckIn: () => void;
+  claimQuestReward: (questId: QuestId) => void;
+  claimDailyChest: () => void;
+  /** Spend 1 ticket, resolve a PvP battle, set `battle`. Live: `execute_pvp_battle`. */
+  startRaidBattle: (opponent: RaidOpponent) => void;
+  dismissBattle: () => void;
+
+  /** Move accrued referral commission into the main balance. Live: `claim_referral_rewards`. */
+  claimReferralEarnings: () => void;
+}
+
+export const useGameStore = create<GameStore>()((set, get) => ({
+  mode: 'mock',
+  status: 'idle',
+  profile: null,
+  activeTab: 'farm',
+
+  balanceGram: 12.5,
+  pendingGram: 0,
+  lockedGram: 0,
+  incomePerDay: INCOME_PER_DAY,
+  xp: 1250,
+
+  farm: {
+    totalIncomePerDay: INCOME_PER_DAY,
+    lastClaimAt: seedLastClaimAt,
+    nextClaimAt: seedNextClaimAt,
+    claimableGram: 0,
+  },
+  tiers: SEED_TIERS,
+  hats: HATS,
+  transactions: [
+    { id: 'tx-seed-1', type: 'DEPOSIT', amount: 10, status: 'COMPLETED', timestamp: bootNow - 3 * DAY_MS, txHash: mockHash() },
+    { id: 'tx-seed-2', type: 'TIER_ROLL', amount: 2, status: 'COMPLETED', timestamp: bootNow - 2 * DAY_MS, txHash: mockHash() },
+    { id: 'tx-seed-3', type: 'FARM_CLAIM', amount: 0.18, status: 'COMPLETED', timestamp: bootNow - DAY_MS, txHash: mockHash() },
+    { id: 'tx-seed-4', type: 'FARM_CLAIM', amount: 0.09, status: 'COMPLETED', timestamp: bootNow - COOLDOWN_MS, txHash: mockHash() },
+    {
+      id: 'tx-seed-5',
+      type: 'DEPOSIT',
+      amount: 4,
+      status: 'PENDING',
+      timestamp: bootNow - 6 * 60 * 1000,
+      txHash: null,
+    },
+  ],
+
+  reveal: null,
+  battle: null,
+
+  quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
+  questsResetAt: bootNow,
+  streakDay: 3,
+  lastCheckInAt: bootNow - 30 * 60 * 60 * 1000, // ~1.25 days ago → checkable
+  dailyChestClaimed: false,
+  fragments: 6,
+  dailyBuffUntil: 0,
+  dailyBuffPct: 0,
+
+  raidTickets: 5,
+  lastTicketRefillAt: bootNow,
+  pvpRating: 1180,
+
+  referralCode: '7H4X9K',
+  referralStats: {
+    l1Count: 4,
+    l2Count: 9,
+    l3Count: 21,
+    l1Earned: 1.24,
+    l2Earned: 0.38,
+    l3Earned: 0.11,
+    unclaimedGram: 0.42,
+  },
+  referralsList: [
+    { id: 'rf-1', handle: '@crypto_capy', memeType: 'capybara', tier: 1, joinedAt: bootNow - 6 * DAY_MS, broughtGram: 0.64 },
+    { id: 'rf-2', handle: '@pepe_whale', memeType: 'pepe', tier: 1, joinedAt: bootNow - 4 * DAY_MS, broughtGram: 0.41 },
+    { id: 'rf-3', handle: '@doge_to_moon', memeType: 'doge', tier: 2, joinedAt: bootNow - 2 * DAY_MS, broughtGram: 0.19 },
+    { id: 'rf-4', handle: '@gigabrain', memeType: 'gigachad', tier: 1, joinedAt: bootNow - 18 * 60 * 60 * 1000, broughtGram: 0.05 },
+  ],
+
+  invites: 0,
+  lastWithdrawAt: null,
+
+  setActiveTab: (tab) => set({ activeTab: tab }),
+
+  hydrate: async () => {
+    if (get().status === 'loading') return;
+
+    if (!isSupabaseConfigured) {
+      set({ mode: 'mock', status: 'ready' });
+      return;
+    }
+
+    set({ status: 'loading' });
+    try {
+      const [profile, farmData, txs] = await Promise.all([
+        fetchUserProfile(),
+        fetchFarmData(),
+        fetchTransactions(),
+      ]);
+
+      set((st) => ({
+        mode: 'live',
+        status: 'ready',
+        profile,
+        referralCode: profile.referralCode ?? st.referralCode,
+        balanceGram: farmData.balanceGram,
+        pendingGram: farmData.pendingGram,
+        lockedGram: farmData.lockedGram,
+        incomePerDay: farmData.incomePerDay,
+        farm: farmData.farm,
+        tiers: farmData.tiers,
+        transactions: txs,
+        hats: st.hats, // hat inventory stays local until it has its own endpoint
+      }));
+
+      // referral dashboard — non-fatal if it fails
+      try {
+        const ref = await fetchReferralData();
+        set((st) => ({
+          referralStats: ref.stats,
+          referralsList: ref.friends,
+          referralCode: ref.code ?? st.referralCode,
+        }));
+      } catch (e) {
+        console.warn('[store] referral fetch skipped:', e);
+      }
+    } catch (err) {
+      console.warn('[store] Supabase hydrate failed — falling back to mock data:', err);
+      set({ mode: 'mock', status: 'ready' });
+    }
+  },
+
+  accrue: () =>
+    set((s) => {
+      const t = Date.now();
+      const span = s.farm.nextClaimAt - s.farm.lastClaimAt || COOLDOWN_MS;
+      const elapsed = Math.min(Math.max(t - s.farm.lastClaimAt, 0), span);
+      const buff = s.dailyBuffUntil > t ? 1 + s.dailyBuffPct / 100 : 1;
+      const claimable = round4(s.incomePerDay * buff * (elapsed / DAY_MS));
+      if (claimable === s.farm.claimableGram) return s;
+      return { farm: { ...s.farm, claimableGram: claimable } };
+    }),
+
+  tickDaily: () =>
+    set((s) => {
+      const now = Date.now();
+      const patch: Partial<GameStore> = {};
+
+      // ticket refill
+      if (s.raidTickets < MAX_RAID_TICKETS) {
+        const gained = Math.floor((now - s.lastTicketRefillAt) / TICKET_REFILL_MS);
+        if (gained > 0) {
+          patch.raidTickets = Math.min(MAX_RAID_TICKETS, s.raidTickets + gained);
+          patch.lastTicketRefillAt = s.lastTicketRefillAt + gained * TICKET_REFILL_MS;
+        }
+      } else {
+        patch.lastTicketRefillAt = now;
+      }
+
+      // daily quest rollover
+      if (!isSameUtcDay(s.questsResetAt, now)) {
+        patch.quests = DEFAULT_QUESTS.map((q) => ({ ...q }));
+        patch.questsResetAt = now;
+        patch.dailyChestClaimed = false;
+      }
+
+      return Object.keys(patch).length ? patch : s;
+    }),
+
+  claim: async () => {
+    const s = get();
+
+    if (s.mode === 'live') {
+      try {
+        const res = await claimIncomeRPC();
+        const t = Date.now();
+        set((st) => ({
+          balanceGram: res.newAvailableGram,
+          farm: { ...st.farm, claimableGram: 0, lastClaimAt: t, nextClaimAt: res.nextClaimAt },
+          transactions: [
+            { id: `tx-${t}`, type: 'FARM_CLAIM', amount: res.earnedGram, status: 'COMPLETED', timestamp: t, txHash: null },
+            ...st.transactions,
+          ],
+        }));
+      } catch (err) {
+        console.warn('[store] claim RPC failed:', err);
+      }
+      return;
+    }
+
+    set((st) => {
+      const amount = st.farm.claimableGram;
+      if (amount <= 0) return st;
+      const t = Date.now();
+      const tx: Transaction = { id: `tx-${t}`, type: 'FARM_CLAIM', amount, status: 'COMPLETED', timestamp: t, txHash: mockHash() };
+      return {
+        balanceGram: round4(st.balanceGram + amount),
+        transactions: [tx, ...st.transactions],
+        farm: { ...st.farm, claimableGram: 0, lastClaimAt: t, nextClaimAt: t + COOLDOWN_MS },
+        quests: bumpQuests(st.quests, 'farm_claim'),
+      };
+    });
+  },
+
+  deposit: (amount, txHash = null) =>
+    set((s) => {
+      if (amount <= 0) return s;
+      const t = Date.now();
+      const tx: Transaction = {
+        id: `tx-${t}`,
+        type: 'DEPOSIT',
+        amount,
+        status: 'PENDING',
+        timestamp: t,
+        txHash,
+        address: s.profile?.walletAddress ?? null,
+      };
+      // Balance is credited only when the on-chain deposit confirms; until then
+      // the amount shows up in the "Pending" plate + confirmations tab.
+      return { transactions: [tx, ...s.transactions] };
+    }),
+
+  requestWithdrawal: async (amount, address) => {
+    const s = get();
+    if (amount < WITHDRAW_MIN || amount > s.balanceGram) return;
+    if (s.lastWithdrawAt && Date.now() - s.lastWithdrawAt < WITHDRAW_COOLDOWN_MS) return;
+
+    const fee = withdrawalFee(amount);
+    const net = round4(amount - fee);
+    if (net <= 0) return;
+
+    if (s.mode === 'live') {
+      try {
+        const res = await requestWithdrawalRPC(amount, address);
+        const t = Date.now();
+        set((st) => ({
+          balanceGram: res.newAvailableGram,
+          lastWithdrawAt: t,
+          transactions: [
+            { id: res.txId || `tx-${t}`, type: 'WITHDRAW', amount, fee: res.fee, netAmount: res.netAmount, address, status: 'PENDING', timestamp: t, txHash: null },
+            ...st.transactions,
+          ],
+        }));
+      } catch (err) {
+        console.warn('[store] request_withdrawal RPC failed:', err);
+      }
+      return;
+    }
+
+    const t = Date.now();
+    const tx: Transaction = {
+      id: `tx-${t}`,
+      type: 'WITHDRAW',
+      amount,
+      fee,
+      netAmount: net,
+      address,
+      status: 'PENDING',
+      timestamp: t,
+      txHash: null,
+    };
+    set((st) => ({
+      balanceGram: round4(st.balanceGram - amount),
+      lastWithdrawAt: t,
+      transactions: [tx, ...st.transactions],
+    }));
+  },
+
+  rollTier: async (tier) => {
+    const s = get();
+    const row = s.tiers.find((r) => r.tier === tier);
+    if (!row) return;
+    const cost = row.costGram;
+    if (s.balanceGram + 1e-9 < cost) return;
+
+    if (s.mode === 'live') {
+      try {
+        const res = await rollTierRPC(tier);
+        const card =
+          tierPool(tier).find((c) => c.slot === res.cardSlot) ?? tierPool(tier)[0];
+        const character: MemeCharacter = {
+          ...characterFromCard(card),
+          name: res.name || card.name,
+          currentIncome: res.incomeDay || card.incomePerDay,
+          baseIncome: res.incomeDay || card.incomePerDay,
+        };
+        applyRoll(set, { tier, card, character, balanceOverride: res.newBalanceGram });
+      } catch (err) {
+        console.warn('[store] rollTier RPC failed:', err);
+      }
+      return;
+    }
+
+    const card = rollTierCard(tier);
+    const character = characterFromCard(card);
+    applyRoll(set, { tier, card, character });
+  },
+
+  dismissReveal: () => set({ reveal: null }),
+
+  upgradeCharacter: async (characterId) => {
+    const s = get();
+    const owner = s.tiers.find((r) => r.characters.some((c) => c.id === characterId));
+    const target = owner?.characters.find((c) => c.id === characterId);
+    if (!owner || !target) return;
+    if (s.xp < upgradeCostXp(target.level)) return;
+
+    if (s.mode === 'live') {
+      try {
+        await studyUpgradeRPC(characterId);
+        await refetchLive(set);
+      } catch (err) {
+        console.warn('[store] study_upgrade RPC failed:', err);
+      }
+      return;
+    }
+
+    set((st) => {
+      const own = st.tiers.find((r) => r.characters.some((c) => c.id === characterId));
+      const tgt = own?.characters.find((c) => c.id === characterId);
+      if (!own || !tgt) return st;
+      const cost = upgradeCostXp(tgt.level);
+      if (st.xp < cost) return st;
+
+      const tiers = st.tiers.map((r) =>
+        r.tier === own.tier
+          ? {
+              ...r,
+              characters: r.characters.map((c) =>
+                c.id === characterId
+                  ? {
+                      ...c,
+                      level: c.level + 1,
+                      currentIncome: nextLevelIncome(c.currentIncome),
+                      power: nextLevelPower(c.power),
+                    }
+                  : c,
+              ),
+            }
+          : r,
+      );
+      const incomePerDay = totalIncome(tiers, st.hats);
+      return {
+        xp: st.xp - cost,
+        tiers,
+        incomePerDay,
+        farm: { ...st.farm, totalIncomePerDay: incomePerDay },
+        quests: bumpQuests(st.quests, 'study_upgrade'),
+      };
+    });
+  },
+
+  mergeCharacters: async (name, level) => {
+    const s = get();
+    const owner = s.tiers.find(
+      (r) => r.characters.filter((c) => c.name === name && c.level === level).length >= 2,
+    );
+    if (!owner) return;
+    if (s.balanceGram + 1e-9 < mergeFee(owner.tier)) return;
+
+    if (s.mode === 'live') {
+      try {
+        const sample = owner.characters.find((c) => c.name === name && c.level === level)!;
+        await mergeCharactersRPC(`t${sample.tier}_c${sample.cardSlot}`, level);
+        await refetchLive(set);
+      } catch (err) {
+        console.warn('[store] merge_user_characters RPC failed:', err);
+      }
+      return;
+    }
+
+    set((st) => {
+      const own = st.tiers.find(
+        (r) => r.characters.filter((c) => c.name === name && c.level === level).length >= 2,
+      );
+      if (!own) return st;
+      const fee = mergeFee(own.tier);
+      if (st.balanceGram + 1e-9 < fee) return st;
+
+      const [a, b] = own.characters.filter((c) => c.name === name && c.level === level);
+      const newLevel = level + 1;
+      const merged: MemeCharacter = {
+        ...a,
+        id: newInstanceId(),
+        level: newLevel,
+        currentIncome: mergedIncome(a.baseIncome, newLevel),
+        power: round4(a.power * 1.75),
+      };
+
+      const consumed = new Set([a.id, b.id]);
+      const tiers = st.tiers.map((r) =>
+        r.tier === own.tier
+          ? { ...r, characters: [...r.characters.filter((c) => !consumed.has(c.id)), merged] }
+          : r,
+      );
+      const t = Date.now();
+      const tx: Transaction = {
+        id: `tx-${t}`,
+        type: 'MERGE_FEE',
+        amount: fee,
+        status: 'COMPLETED',
+        timestamp: t,
+        txHash: mockHash(),
+      };
+      const incomePerDay = totalIncome(tiers, st.hats);
+      return {
+        balanceGram: round4(st.balanceGram - fee),
+        tiers,
+        transactions: [tx, ...st.transactions],
+        incomePerDay,
+        farm: { ...st.farm, totalIncomePerDay: incomePerDay },
+      };
+    });
+  },
+
+  equipHat: (tier, hatId) =>
+    set((s) => {
+      const key = tierKey(tier);
+      const hats = s.hats.map((h) => {
+        if (h.id === hatId) return { ...h, equippedTierId: key };
+        if (h.equippedTierId === key) return { ...h, equippedTierId: null };
+        return h;
+      });
+      const equipped = hatId ? hats.find((h) => h.id === hatId) ?? null : null;
+      const asEquipment: Equipment | null = equipped
+        ? { id: equipped.id, name: equipped.name, slot: 'hat', bonusPct: equipped.bonusPct }
+        : null;
+      const tiers = s.tiers.map((r) => (r.tier === tier ? { ...r, hat: asEquipment } : r));
+      const incomePerDay = totalIncome(tiers, hats);
+      return { hats, tiers, incomePerDay, farm: { ...s.farm, totalIncomePerDay: incomePerDay } };
+    }),
+
+  claimDailyCheckIn: () =>
+    set((s) => {
+      const now = Date.now();
+      if (s.lastCheckInAt && isSameUtcDay(s.lastCheckInAt, now)) return s;
+
+      // continue the run only if the last claim was exactly "yesterday"
+      const gap = s.lastCheckInAt == null ? 999 : utcDaysBetween(s.lastCheckInAt, now);
+      const prevDay = gap === 1 ? s.streakDay : 0;
+      const day = prevDay >= 7 ? 1 : prevDay + 1;
+
+      const rewards = STREAK_DAYS[day - 1].rewards;
+      return {
+        ...grantRewards(s, rewards),
+        streakDay: day,
+        lastCheckInAt: now,
+      };
+    }),
+
+  claimQuestReward: (questId) =>
+    set((s) => {
+      const q = s.quests.find((x) => x.id === questId);
+      if (!q || q.claimed || q.progress < q.goal) return s;
+      return {
+        ...grantRewards(s, [q.reward]),
+        quests: s.quests.map((x) => (x.id === questId ? { ...x, claimed: true } : x)),
+      };
+    }),
+
+  claimDailyChest: () =>
+    set((s) => {
+      if (s.dailyChestClaimed) return s;
+      if (!s.quests.every((q) => q.claimed)) return s;
+      return { ...grantRewards(s, [{ ...DAILY_CHEST_REWARD }]), dailyChestClaimed: true };
+    }),
+
+  startRaidBattle: (opponent) =>
+    set((s) => {
+      if (s.raidTickets <= 0) return s;
+      const userPower = Math.round(flattenCharacters(s.tiers).reduce((sum, c) => sum + c.power, 0));
+      const winChance = userPower / (userPower + opponent.power || 1);
+      const won = Math.random() < winChance;
+      const delta = pvpRatingDelta(won, winChance);
+      const newRating = Math.max(0, s.pvpRating + delta);
+
+      const rewards: Reward[] = won
+        ? [
+            { kind: 'xp', amount: 180 },
+            { kind: 'fragments', amount: 2 },
+          ]
+        : [{ kind: 'xp', amount: 40 }];
+
+      const battle: BattleResult = {
+        opponent,
+        userPower,
+        won,
+        winChance,
+        ratingDelta: delta,
+        newRating,
+        rewards,
+      };
+
+      return {
+        ...grantRewards(s, rewards),
+        raidTickets: s.raidTickets - 1,
+        pvpRating: newRating,
+        quests: won ? bumpQuests(s.quests, 'raid_win') : s.quests,
+        battle,
+      };
+    }),
+
+  dismissBattle: () => set({ battle: null }),
+
+  claimReferralEarnings: async () => {
+    const s = get();
+    const amount = s.referralStats.unclaimedGram;
+    if (amount <= 0) return;
+
+    if (s.mode === 'live') {
+      try {
+        const res = await claimReferralRewardsRPC();
+        const t = Date.now();
+        set((st) => ({
+          balanceGram: res.newAvailableGram,
+          referralStats: { ...st.referralStats, unclaimedGram: 0 },
+          transactions: [
+            { id: res.txId || `tx-${t}`, type: 'REFERRAL_REWARD', amount: res.claimedGram, status: 'COMPLETED', timestamp: t, txHash: null },
+            ...st.transactions,
+          ],
+        }));
+      } catch (err) {
+        console.warn('[store] claim_referral_rewards RPC failed:', err);
+      }
+      return;
+    }
+
+    const t = Date.now();
+    set((st) => ({
+      balanceGram: round4(st.balanceGram + amount),
+      referralStats: { ...st.referralStats, unclaimedGram: 0 },
+      transactions: [
+        { id: `tx-${t}`, type: 'REFERRAL_REWARD', amount, status: 'COMPLETED', timestamp: t, txHash: mockHash() },
+        ...st.transactions,
+      ],
+    }));
+  },
+}));
+
+// --- rewards -----------------------------------------------------------
+
+function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
+  let { xp, balanceGram, raidTickets, fragments, dailyBuffUntil, dailyBuffPct, tiers } = st;
+
+  for (const r of rewards) {
+    switch (r.kind) {
+      case 'xp':
+        xp += r.amount;
+        break;
+      case 'gram':
+        balanceGram = round4(balanceGram + r.amount);
+        break;
+      case 'tickets':
+        raidTickets = Math.min(MAX_RAID_TICKETS, raidTickets + r.amount);
+        break;
+      case 'fragments':
+        fragments += r.amount;
+        break;
+      case 'buff':
+        dailyBuffUntil = Date.now() + DAILY_BUFF_MS;
+        dailyBuffPct = r.amount;
+        break;
+      case 'case': {
+        const card = rollTierCard(1);
+        const ch = characterFromCard(card);
+        tiers = tiers.map((row) =>
+          row.tier === 1
+            ? {
+                ...row,
+                characters: [...row.characters, ch],
+                discovered: row.discovered.includes(card.slot)
+                  ? row.discovered
+                  : ([...row.discovered, card.slot].sort((a, b) => a - b) as CardSlot[]),
+              }
+            : row,
+        );
+        break;
+      }
+    }
+  }
+
+  const incomePerDay = totalIncome(tiers, st.hats);
+  return {
+    xp,
+    balanceGram,
+    raidTickets,
+    fragments,
+    dailyBuffUntil,
+    dailyBuffPct,
+    tiers,
+    incomePerDay,
+    farm: { ...st.farm, totalIncomePerDay: incomePerDay },
+  };
+}
+
+// --- roll helper (shared by mock + live paths) --------------------------
+
+type SetFn = (updater: (s: GameStore) => GameStore | Partial<GameStore>) => void;
+
+function applyRoll(
+  set: SetFn,
+  args: { tier: TierId; card: GachaCard; character: MemeCharacter; balanceOverride?: number },
+) {
+  const { tier, card, character, balanceOverride } = args;
+  set((s) => {
+    const row = s.tiers.find((r) => r.tier === tier);
+    if (!row) return s;
+    const isNew = !row.discovered.includes(card.slot);
+    const tiers = s.tiers.map((r) =>
+      r.tier === tier
+        ? {
+            ...r,
+            discovered: isNew
+              ? ([...r.discovered, card.slot].sort((a, b) => a - b) as CardSlot[])
+              : r.discovered,
+            characters: [...r.characters, character],
+          }
+        : r,
+    );
+    const t = Date.now();
+    const tx: Transaction = {
+      id: `tx-${t}`,
+      type: 'TIER_ROLL',
+      amount: row.costGram,
+      status: 'COMPLETED',
+      timestamp: t,
+      txHash: s.mode === 'live' ? null : mockHash(),
+    };
+    const incomePerDay = totalIncome(tiers, s.hats);
+    return {
+      balanceGram: round4(balanceOverride ?? s.balanceGram - row.costGram),
+      tiers,
+      transactions: [tx, ...s.transactions],
+      incomePerDay,
+      farm: { ...s.farm, totalIncomePerDay: incomePerDay },
+      reveal: { tier, card, character, isNewDiscovery: isNew, jackpot: card.slot === 5 },
+      quests: bumpQuests(s.quests, 'tier_roll'),
+    };
+  });
+}
+
+/** Pull the live farm slice + tx history and merge it into the store. */
+async function refetchLive(set: SetFn) {
+  const [data, txs] = await Promise.all([fetchFarmData(), fetchTransactions()]);
+  set(() => ({
+    balanceGram: data.balanceGram,
+    pendingGram: data.pendingGram,
+    lockedGram: data.lockedGram,
+    incomePerDay: data.incomePerDay,
+    farm: data.farm,
+    tiers: data.tiers,
+    transactions: txs,
+  }));
+}
+
+// --- selectors --------------------------------------------------------
+
+export const flattenCharacters = (tiers: TierRow[]): MemeCharacter[] =>
+  tiers.flatMap((r) => r.characters);
+
+/** Lifetime GRAM pulled off the farm (completed FARM_CLAIM entries). */
+export const selectTotalEarned = (s: GameStore): number =>
+  round4(
+    s.transactions
+      .filter((t) => t.type === 'FARM_CLAIM' && t.status === 'COMPLETED')
+      .reduce((sum, t) => sum + t.amount, 0),
+  );
+
+/** GRAM currently in flight — pending deposits + pending withdrawals. */
+export const selectPendingGram = (s: GameStore): number =>
+  round4(
+    s.transactions
+      .filter((t) => t.status === 'PENDING')
+      .reduce((sum, t) => sum + t.amount, 0),
+  );
+
+export interface CollectionGroup {
+  key: string;
+  sample: MemeCharacter;
+  count: number;
+  /** Instances by level, e.g. { 1: 3, 2: 1 } — drives merge availability. */
+  byLevel: Record<number, number>;
+  /** Highest level with ≥2 instances (mergeable), or 0. */
+  mergeableLevel: number;
+}
+
+/** Owned characters grouped by name, richest first. */
+export function groupCollection(tiers: TierRow[]): CollectionGroup[] {
+  const map = new Map<string, CollectionGroup>();
+  for (const c of flattenCharacters(tiers)) {
+    let g = map.get(c.name);
+    if (!g) {
+      g = { key: c.name, sample: c, count: 0, byLevel: {}, mergeableLevel: 0 };
+      map.set(c.name, g);
+    }
+    g.count += 1;
+    g.byLevel[c.level] = (g.byLevel[c.level] ?? 0) + 1;
+    if (c.currentIncome > g.sample.currentIncome) g.sample = c;
+  }
+  for (const g of map.values()) {
+    g.mergeableLevel = Object.entries(g.byLevel)
+      .filter(([, n]) => n >= 2)
+      .map(([lvl]) => Number(lvl))
+      .reduce((max, lvl) => Math.max(max, lvl), 0);
+  }
+  return [...map.values()].sort((a, b) => b.sample.currentIncome - a.sample.currentIncome);
+}
+
+/** Distinct cards discovered across all six tiers (out of 30). */
+export const selectDiscoveredCount = (s: GameStore): number =>
+  s.tiers.reduce((sum, r) => sum + r.discovered.length, 0);
+
+/** Sum of every owned instance's PvP power. */
+export const selectFarmPower = (s: GameStore): number =>
+  Math.round(flattenCharacters(s.tiers).reduce((sum, c) => sum + c.power, 0));
+
+/** Total equipped-hat income boost, percent (e.g. 45 → "+45%"). */
+export const selectBoostPct = (s: GameStore): number =>
+  s.hats.filter((h) => h.equippedTierId != null).reduce((sum, h) => sum + h.bonusPct, 0);
+
+/** Daily income after the streak-7 buff, if active. */
+export const selectEffectiveIncome = (s: GameStore): number =>
+  round4(s.incomePerDay * (s.dailyBuffUntil > Date.now() ? 1 + s.dailyBuffPct / 100 : 1));
+
+export const selectBuffActive = (s: GameStore): boolean => s.dailyBuffUntil > Date.now();
+
+/** Can the player check in for the streak right now (new UTC day)? */
+export const selectCanCheckIn = (s: GameStore): boolean =>
+  s.lastCheckInAt == null || !isSameUtcDay(s.lastCheckInAt, Date.now());
+
+/** Quests done vs total, plus how many rewards are waiting to be claimed. */
+export const selectDailyProgress = (s: GameStore): { done: number; total: number; claimable: number } => ({
+  done: s.quests.filter((q) => q.claimed).length,
+  total: s.quests.length,
+  claimable: s.quests.filter((q) => !q.claimed && q.progress >= q.goal).length,
+});
+
+/** Bottom-nav badge for the quests tab: check-in + ready rewards + full chest. */
+export const selectQuestBadge = (s: GameStore): number => {
+  const p = selectDailyProgress(s);
+  const chest = !s.dailyChestClaimed && p.done === p.total && p.total > 0 ? 1 : 0;
+  return (selectCanCheckIn(s) ? 1 : 0) + p.claimable + chest;
+};
+
+/** Referral roll-ups for the invite dashboard. */
+export const selectReferralTotals = (
+  s: GameStore,
+): { invites: number; lifetimeEarned: number } => {
+  const r = s.referralStats;
+  return {
+    invites: r.l1Count + r.l2Count + r.l3Count,
+    lifetimeEarned: round4(r.l1Earned + r.l2Earned + r.l3Earned + r.unclaimedGram),
+  };
+};
