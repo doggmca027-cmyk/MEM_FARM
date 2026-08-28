@@ -71,70 +71,91 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Validate the Telegram WebApp initData string.
- * Parsed manually (NOT via URLSearchParams — which turns "+" into a space and
- * would corrupt the check string). Per the spec: split on "&", split each on
- * the first "=", urldecode the value, drop `hash` (+ `signature`), sort by key,
- * join "key=value" with "\n", HMAC with a "WebAppData"-derived secret.
+ * Validate the Telegram WebApp initData string against every scheme any
+ * Telegram client (old Login-Widget style, current WebApp style, desktop
+ * quirks) has ever used. Accepts if ANY combination reproduces `hash`:
+ *   parse:  decoded values | raw values
+ *   fields: drop hash+signature | drop only hash
+ *   secret: HMAC_SHA256("WebAppData", token) | SHA256(token)
  */
 async function verifyInitData(
   initData: string,
 ): Promise<{ user: string; authDate: number } | { error: string; debug?: unknown }> {
+  // split once; keep both a decoded and a raw view of every value
   let hash = '';
-  const kv: Record<string, string> = {};
+  const dec: Record<string, string> = {};
+  const raw: Record<string, string> = {};
   for (const chunk of initData.split('&')) {
     const eq = chunk.indexOf('=');
     if (eq < 0) continue;
     const key = chunk.slice(0, eq);
-    let val: string;
+    const rv = chunk.slice(eq + 1);
+    let dv: string;
     try {
-      val = decodeURIComponent(chunk.slice(eq + 1));
+      dv = decodeURIComponent(rv);
     } catch {
-      val = chunk.slice(eq + 1);
+      dv = rv;
     }
-    if (key === 'hash') { hash = val; continue; }
-    if (key === 'signature') continue; // Ed25519 field — not in the HMAC check string
-    kv[key] = val;
+    if (key === 'hash') { hash = dv; continue; }
+    dec[key] = dv;
+    raw[key] = rv;
   }
-  if (!hash) return { error: 'no hash in initData', debug: { raw: initData.slice(0, 60) } };
+  if (!hash) return { error: 'no hash in initData', debug: { raw: initData.slice(0, 80) } };
+  const want = hash.toLowerCase();
 
-  const keys = Object.keys(kv).sort();
-  const dataCheckString = keys.map((k) => `${k}=${kv[k]}`).join('\n');
-
-  // secret_key = HMAC_SHA256(key = "WebAppData", data = bot_token)
-  const secretKey = await hmacSha256(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
-  const computed = toHex(await hmacSha256(secretKey, dataCheckString));
-
-  // alt: some old clients used the Login-Widget scheme (secret = SHA256(bot_token))
-  const altSecret = new Uint8Array(
+  const secretWebApp = await hmacSha256(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
+  const secretLogin = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(BOT_TOKEN)),
   );
-  const altComputed = toHex(await hmacSha256(altSecret, dataCheckString));
 
-  if (
-    !timingSafeEqual(computed, hash.toLowerCase()) &&
-    !timingSafeEqual(altComputed, hash.toLowerCase())
-  ) {
+  const build = (src: Record<string, string>, dropSig: boolean) =>
+    Object.keys(src)
+      .filter((k) => (dropSig ? k !== 'signature' : true))
+      .sort()
+      .map((k) => `${k}=${src[k]}`)
+      .join('\n');
+
+  let matched = false;
+  const tried: string[] = [];
+  for (const [pName, src] of [['dec', dec], ['raw', raw]] as const) {
+    for (const dropSig of [true, false]) {
+      const dcs = build(src, dropSig);
+      for (const [sName, secret] of [['webapp', secretWebApp], ['login', secretLogin]] as const) {
+        const got = toHex(await hmacSha256(secret, dcs));
+        tried.push(`${pName}/${dropSig ? 'noSig' : 'sig'}/${sName}=${got.slice(0, 8)}`);
+        if (timingSafeEqual(got, want)) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched) break;
+    }
+    if (matched) break;
+  }
+
+  if (!matched) {
     return {
       error: 'hash mismatch (bot token vs initData)',
       debug: {
-        keys,
-        recv: hash.slice(0, 12),
-        calc: computed.slice(0, 12),
-        alt: altComputed.slice(0, 12),
+        keys: Object.keys(dec).sort(),
+        recv: want.slice(0, 10),
+        tried,
         botId: BOT_TOKEN.split(':')[0],
+        // full string so it can be verified offline — contains only the
+        // caller's own Telegram user object (id / name), nothing secret.
+        initData,
       },
     };
   }
 
-  const authDate = Number(kv['auth_date'] ?? '0');
+  const authDate = Number(dec['auth_date'] ?? '0');
   if (!authDate) return { error: 'no auth_date' };
   const ageSec = Math.floor(Date.now() / 1000 - authDate);
   if (ageSec > AUTH_DATE_MAX_AGE_SEC) {
     return { error: `initData too old (${Math.floor(ageSec / 86400)}d) — relaunch the app` };
   }
 
-  return { user: kv['user'] ?? '{}', authDate };
+  return { user: dec['user'] ?? '{}', authDate };
 }
 
 Deno.serve(async (req) => {
