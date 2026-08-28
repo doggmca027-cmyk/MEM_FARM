@@ -18,6 +18,9 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
 import { DAILY_CHEST_REWARD, DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
 import {
+  adminBanUser,
+  adminProcessWithdrawal,
+  adminUpdateEmissionFactor,
   claimIncomeRPC,
   claimReferralRewardsRPC,
   fetchFarmData,
@@ -250,6 +253,9 @@ interface GameStore {
 
   invites: number;
 
+  /** admin panel overlay (only reachable when `profile.isAdmin`). */
+  adminOpen: boolean;
+
   /** epoch ms of the last withdrawal request (24h cooldown), or null. */
   lastWithdrawAt: number | null;
 
@@ -285,6 +291,13 @@ interface GameStore {
 
   /** Move accrued referral commission into the main balance. Live: `claim_referral_rewards`. */
   claimReferralEarnings: () => void;
+
+  // --- admin (live only, requires profile.isAdmin) ---
+  setAdminOpen: (open: boolean) => void;
+  adminApproveWithdrawal: (txId: string, txHash: string) => Promise<void>;
+  adminRejectWithdrawal: (txId: string) => Promise<void>;
+  adminSetEmissionFactor: (factor: number) => Promise<number>;
+  adminSetBanned: (userId: string, banned: boolean) => Promise<boolean>;
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -357,6 +370,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   ],
 
   invites: 0,
+  adminOpen: false,
   lastWithdrawAt: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -861,6 +875,26 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         ...st.transactions,
       ],
     }));
+  },
+
+  // --- admin ---
+  setAdminOpen: (open) => set({ adminOpen: open }),
+
+  adminApproveWithdrawal: async (txId, txHash) => {
+    await adminProcessWithdrawal(txId, 'APPROVE', txHash);
+  },
+
+  adminRejectWithdrawal: async (txId) => {
+    await adminProcessWithdrawal(txId, 'REJECT');
+  },
+
+  adminSetEmissionFactor: async (factor) => {
+    const res = await adminUpdateEmissionFactor(factor);
+    return res.emissionFactor;
+  },
+
+  adminSetBanned: async (userId, banned) => {
+    return adminBanUser(userId, banned);
   },
 }));
 

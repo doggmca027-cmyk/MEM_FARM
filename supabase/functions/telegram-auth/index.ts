@@ -21,6 +21,14 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
+/** Comma-separated Telegram IDs granted admin rights (re-checked every login). */
+const ADMIN_IDS = new Set(
+  (Deno.env.get('ADMIN_TELEGRAM_IDS') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
 const AUTH_DATE_MAX_AGE_SEC = 24 * 60 * 60;
 
 const CORS = {
@@ -159,11 +167,22 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Keep the profile fresh (handle_new_user creates it on first sign-up).
+  // Keep the profile fresh + (re)evaluate admin rights every login.
+  const isAdmin = ADMIN_IDS.has(String(telegramId));
   await admin
     .from('profiles')
-    .update({ username, first_name: firstName })
+    .update({ username, first_name: firstName, is_admin: isAdmin })
     .eq('id', userId);
+
+  // Refuse banned accounts.
+  const { data: banRow } = await admin
+    .from('profiles')
+    .select('is_banned')
+    .eq('id', userId)
+    .maybeSingle();
+  if (banRow?.is_banned) {
+    return json({ error: 'account is banned' }, 403);
+  }
 
   // Attach the referral chain — no-op if already bound or code unknown.
   const referrerCode = (body.referrer_code ?? '').trim();
@@ -182,6 +201,6 @@ Deno.serve(async (req) => {
     access_token: signIn.session.access_token,
     refresh_token: signIn.session.refresh_token,
     expires_at: signIn.session.expires_at,
-    user: { id: userId, telegram_id: telegramId, username, first_name: firstName },
+    user: { id: userId, telegram_id: telegramId, username, first_name: firstName, is_admin: isAdmin },
   });
 });

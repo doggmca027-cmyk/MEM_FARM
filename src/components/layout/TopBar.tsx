@@ -1,6 +1,8 @@
 import { TonConnectButton } from '@tonconnect/ui-react';
+import { Crown } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { fmtGram } from '../../lib/format';
+import { haptic } from '../../lib/haptics';
 import { CoinIcon, GramIcon } from '../icons/Icons';
 import { Chip } from '../ui/Chip';
 
@@ -17,6 +19,8 @@ export function TopBar({ level = 7 }: { level?: number }) {
   const incomePerDay = useGameStore((s) => s.incomePerDay);
   const xp = useGameStore((s) => s.xp);
   const activeTab = useGameStore((s) => s.activeTab);
+  const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
+  const setAdminOpen = useGameStore((s) => s.setAdminOpen);
 
   return (
     <header className="safe-t sticky top-0 z-30 bg-farm-deep/85 px-4 pb-3 backdrop-blur-md">
@@ -34,6 +38,18 @@ export function TopBar({ level = 7 }: { level?: number }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => {
+                haptic.impact('medium');
+                setAdminOpen(true);
+              }}
+              aria-label="Адмін-панель"
+              className="grid h-9 w-9 place-items-center rounded-xl border-2 border-black border-b-4 border-b-black/40 bg-neon-yellow text-black active:translate-y-0.5"
+            >
+              <Crown className="h-4 w-4" strokeWidth={3} />
+            </button>
+          )}
           <Chip className="bg-farm-card text-neon-lime">+{fmtGram(incomePerDay, 3)}/d</Chip>
           <TonConnectButton />
         </div>

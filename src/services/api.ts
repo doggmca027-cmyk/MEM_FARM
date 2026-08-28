@@ -1,6 +1,12 @@
 import { supabase, SupabaseUnavailableError } from '../lib/supabase';
 import type { CardSlot, FarmState, MemeCharacter, MemeType, Rarity, TierId, TierRow } from '../types/game';
 import type { ReferralFriend, ReferralStats, ReferralTier } from '../types/referral';
+import type {
+  AdminMetrics,
+  AdminUserDetail,
+  AdminUserRow,
+  WithdrawalRequest,
+} from '../types/admin';
 import { TIER_COST, TIER_IDS } from '../data/tiers';
 import type { Transaction, TransactionStatus, TransactionType } from '../types/finance';
 
@@ -39,6 +45,8 @@ export interface ProfileData {
   firstName: string | null;
   walletAddress: string | null;
   referralCode: string | null;
+  isAdmin: boolean;
+  isBanned: boolean;
 }
 
 export interface FarmData {
@@ -153,7 +161,7 @@ export async function fetchUserProfile(): Promise<ProfileData> {
   const uid = await requireUserId();
   const { data, error } = await client()
     .from('profiles')
-    .select('id, telegram_id, username, first_name, wallet_address, referral_code')
+    .select('id, telegram_id, username, first_name, wallet_address, referral_code, is_admin, is_banned')
     .eq('id', uid)
     .single();
 
@@ -165,7 +173,119 @@ export async function fetchUserProfile(): Promise<ProfileData> {
     firstName: data.first_name ?? null,
     walletAddress: data.wallet_address ?? null,
     referralCode: data.referral_code ?? null,
+    isAdmin: Boolean(data.is_admin),
+    isBanned: Boolean(data.is_banned),
   };
+}
+
+// --- admin ---------------------------------------------------------------
+
+export async function adminListWithdrawals(): Promise<WithdrawalRequest[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_list_withdrawals', { p_admin_id: uid });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    txId: String(r.tx_id),
+    userId: String(r.user_id),
+    username: (r.username as string) ?? null,
+    firstName: (r.first_name as string) ?? null,
+    registeredAt: ms(r.registered_at as string),
+    balanceGram: num(r.balance_gram),
+    amount: num(r.amount),
+    fee: num(r.fee),
+    netAmount: num(r.net_amount),
+    walletAddress: (r.wallet_address as string) ?? null,
+    requestedAt: ms(r.requested_at as string),
+  }));
+}
+
+export async function adminProcessWithdrawal(
+  txId: string,
+  action: 'APPROVE' | 'REJECT',
+  txHash?: string,
+): Promise<{ status: string; refunded: number; newBalanceGram: number }> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_process_withdrawal', {
+    p_admin_id: uid,
+    p_tx_id: txId,
+    p_action: action,
+    p_tx_hash: txHash ?? null,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    status: String(row?.status ?? ''),
+    refunded: num(row?.refunded),
+    newBalanceGram: num(row?.new_balance_gram),
+  };
+}
+
+export async function adminFetchMetrics(): Promise<AdminMetrics> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_metrics', { p_admin_id: uid });
+  if (error) throw error;
+  const r = (Array.isArray(data) ? data[0] : data) ?? {};
+  return {
+    totalBalances: num(r.total_balances),
+    withdrawn24h: num(r.withdrawn_24h),
+    withdrawn7d: num(r.withdrawn_7d),
+    pendingCount: Number(r.pending_count) || 0,
+    pendingSum: num(r.pending_sum),
+    userCount: Number(r.user_count) || 0,
+    emissionFactor: num(r.emission_factor) || 1,
+  };
+}
+
+export async function adminUpdateEmissionFactor(
+  factor: number,
+): Promise<{ updatedRows: number; emissionFactor: number }> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_update_emission_factor', {
+    p_admin_id: uid,
+    p_factor: factor,
+  });
+  if (error) throw error;
+  const r = (Array.isArray(data) ? data[0] : data) ?? {};
+  return { updatedRows: Number(r.updated_rows) || 0, emissionFactor: num(r.emission_factor) || factor };
+}
+
+export async function adminFindUser(query: string): Promise<AdminUserRow[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_find_user', { p_admin_id: uid, p_query: query });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    userId: String(r.user_id),
+    telegramId: r.telegram_id != null ? Number(r.telegram_id) : null,
+    username: (r.username as string) ?? null,
+    firstName: (r.first_name as string) ?? null,
+    registeredAt: ms(r.registered_at as string),
+    balanceGram: num(r.balance_gram),
+    isAdmin: Boolean(r.is_admin),
+    isBanned: Boolean(r.is_banned),
+    referralL1: Number(r.referral_l1) || 0,
+  }));
+}
+
+export async function adminUserDetail(userId: string): Promise<AdminUserDetail> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_user_detail', {
+    p_admin_id: uid,
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  return data as AdminUserDetail;
+}
+
+export async function adminBanUser(userId: string, banned: boolean): Promise<boolean> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_ban_user', {
+    p_admin_id: uid,
+    p_user_id: userId,
+    p_banned: banned,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return Boolean(row?.is_banned);
 }
 
 const REFERRAL_RATE: Record<ReferralTier, number> = { 1: 5, 2: 2, 3: 1 };

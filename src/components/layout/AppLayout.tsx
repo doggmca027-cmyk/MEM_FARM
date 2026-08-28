@@ -8,6 +8,7 @@ import { QuestsScreen } from '../../screens/QuestsScreen';
 import { RaidScreen } from '../../screens/RaidScreen';
 import { InviteScreen } from '../../screens/InviteScreen';
 import { WalletScreen } from '../../screens/WalletScreen';
+import { AdminScreen } from '../../screens/AdminScreen';
 
 const SCREENS: Record<NavTab, () => ReactNode> = {
   quests: () => <QuestsScreen />,
@@ -19,6 +20,8 @@ const SCREENS: Record<NavTab, () => ReactNode> = {
 
 export function AppLayout() {
   const activeTab = useGameStore((s) => s.activeTab);
+  const adminOpen = useGameStore((s) => s.adminOpen);
+  const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
 
   return (
     <div className="relative mx-auto flex min-h-full max-w-md flex-col bg-gradient-to-b from-purple-700 via-pink-600/70 to-indigo-900 text-white">
@@ -46,6 +49,8 @@ export function AppLayout() {
       </main>
 
       <BottomNav />
+
+      {adminOpen && isAdmin && <AdminScreen />}
     </div>
   );
 }
