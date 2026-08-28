@@ -61,7 +61,7 @@ export function QuestsScreen() {
 
   const onCheckIn = () => {
     if (!canCheckIn) return;
-    claimDailyCheckIn();
+    void claimDailyCheckIn();
     fireClaimConfetti();
     haptic.notify('success');
   };

@@ -31,8 +31,10 @@ import {
   createPvpLobbyRPC,
   DEFAULT_NOTIF_PREFS,
   fetchFarmData,
+  claimDailyStreakRPC,
   fetchOpenLobbies,
   fetchPvpLeaderboard,
+  fetchPvpProfile,
   fetchReferralData,
   fetchTransactions,
   fetchUserProfile,
@@ -60,6 +62,28 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const bootNow = Date.now();
 const seedLastClaimAt = bootNow - (COOLDOWN_MS - INITIAL_REMAINING_MS);
 const seedNextClaimAt = seedLastClaimAt + COOLDOWN_MS;
+
+// --- mock daily-streak persistence -------------------------------------
+// Mock state is in-memory and resets on every reload — persist just the
+// streak gate so a reload can't re-claim the same day's reward.
+const STREAK_KEY = 'memefarm:streak';
+function loadStreak(): { day: number; at: number | null } {
+  try {
+    const v = JSON.parse(localStorage.getItem(STREAK_KEY) ?? 'null');
+    if (v && typeof v.day === 'number') return { day: v.day, at: v.at ?? null };
+  } catch {
+    /* ignore */
+  }
+  return { day: 0, at: null };
+}
+function saveStreak(day: number, at: number): void {
+  try {
+    localStorage.setItem(STREAK_KEY, JSON.stringify({ day, at }));
+  } catch {
+    /* ignore */
+  }
+}
+const bootStreak = loadStreak();
 
 function mockHash(): string {
   const hex = '0123456789abcdef';
@@ -327,7 +351,7 @@ interface GameStore {
   dismissMergeResult: () => void;
 
   /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
-  claimDailyCheckIn: () => void;
+  claimDailyCheckIn: () => Promise<void>;
   claimQuestReward: (questId: QuestId) => void;
 
   /** Pick the GRAM stake for the next duel. */
@@ -399,8 +423,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
   questsResetAt: bootNow,
-  streakDay: 0,
-  lastCheckInAt: null,
+  streakDay: bootStreak.day,
+  lastCheckInAt: bootStreak.at,
   dailyBuffUntil: 0,
   dailyBuffPct: 0,
 
@@ -482,6 +506,19 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         }));
       } catch (e) {
         console.warn('[store] referral fetch skipped:', e);
+      }
+
+      // pvp profile — rating / xp / streak from the server (non-fatal)
+      try {
+        const pvp = await fetchPvpProfile();
+        set({
+          xp: pvp.xp,
+          pvpRating: pvp.rating,
+          streakDay: pvp.streakDay,
+          lastCheckInAt: pvp.lastCheckInAt,
+        });
+      } catch (e) {
+        console.warn('[store] pvp profile fetch skipped:', e);
       }
     } catch (err) {
       console.warn('[store] Supabase hydrate failed — falling back to mock data:', err);
@@ -818,23 +855,42 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   dismissMergeResult: () => set({ mergeResult: null }),
 
-  claimDailyCheckIn: () =>
-    set((s) => {
-      const now = Date.now();
-      if (s.lastCheckInAt && isSameUtcDay(s.lastCheckInAt, now)) return s;
+  claimDailyCheckIn: async () => {
+    const s = get();
+    const now = Date.now();
+    if (s.lastCheckInAt && isSameUtcDay(s.lastCheckInAt, now)) return;
 
-      // continue the run only if the last claim was exactly "yesterday"
-      const gap = s.lastCheckInAt == null ? 999 : utcDaysBetween(s.lastCheckInAt, now);
-      const prevDay = gap === 1 ? s.streakDay : 0;
+    if (s.mode === 'live') {
+      try {
+        const res = await claimDailyStreakRPC();
+        const pvp = await fetchPvpProfile();
+        set({
+          streakDay: res.streakDay,
+          lastCheckInAt: pvp.lastCheckInAt ?? now,
+          xp: pvp.xp,
+          pvpRating: pvp.rating,
+          balanceGram: res.newAvailableGram,
+        });
+      } catch (err) {
+        console.warn('[store] claim_daily_streak failed:', err);
+      }
+      return;
+    }
+
+    // ----- mock -----
+    set((st) => {
+      if (st.lastCheckInAt && isSameUtcDay(st.lastCheckInAt, now)) return st;
+      const gap = st.lastCheckInAt == null ? 999 : utcDaysBetween(st.lastCheckInAt, now);
+      const prevDay = gap === 1 ? st.streakDay : 0;
       const day = prevDay >= 7 ? 1 : prevDay + 1;
-
-      const rewards = STREAK_DAYS[day - 1].rewards;
+      saveStreak(day, now); // survive a reload — no re-claim of the same day
       return {
-        ...grantRewards(s, rewards),
+        ...grantRewards(st, STREAK_DAYS[day - 1].rewards),
         streakDay: day,
         lastCheckInAt: now,
       };
-    }),
+    });
+  },
 
   claimQuestReward: (questId) =>
     set((s) => {

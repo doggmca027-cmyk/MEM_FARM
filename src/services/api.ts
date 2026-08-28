@@ -635,6 +635,51 @@ export async function fetchPvpLeaderboard(limit = 20): Promise<LeaderRowRpc[]> {
   }));
 }
 
+export interface PvpProfileData {
+  rating: number;
+  xp: number;
+  streakDay: number;
+  /** epoch ms of last check-in day (UTC midnight), or null. */
+  lastCheckInAt: number | null;
+}
+
+/** The caller's own pvp_profiles row (rating / xp / streak). */
+export async function fetchPvpProfile(): Promise<PvpProfileData> {
+  const uid = await requireUserId();
+  const { data, error } = await client()
+    .from('pvp_profiles')
+    .select('rating, xp, streak_day, last_check_in')
+    .eq('user_id', uid)
+    .maybeSingle();
+  if (error) throw error;
+  const lci = data?.last_check_in as string | null | undefined;
+  return {
+    rating: Number(data?.rating) || 0,
+    xp: Number(data?.xp) || 0,
+    streakDay: Number(data?.streak_day) || 0,
+    lastCheckInAt: lci ? Date.parse(`${lci}T00:00:00Z`) : null,
+  };
+}
+
+/** Claim today's daily-streak reward (server-guarded once per UTC day). */
+export async function claimDailyStreakRPC(): Promise<{
+  streakDay: number;
+  rewardKind: string;
+  rewardAmount: number;
+  newAvailableGram: number;
+}> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('claim_daily_streak', { p_user_id: uid });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    streakDay: Number(row?.streak_day) || 0,
+    rewardKind: String(row?.reward_kind ?? ''),
+    rewardAmount: num(row?.reward_amount),
+    newAvailableGram: num(row?.new_available_gram),
+  };
+}
+
 export async function fetchOpenLobbies(): Promise<LobbyRow[]> {
   const uid = await requireUserId();
   const { data, error } = await client()
