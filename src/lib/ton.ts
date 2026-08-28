@@ -3,8 +3,14 @@
  * request. Enough for a text-comment deposit; not a general TON library.
  */
 
-/** Platform treasury — REPLACE with the real deposit address before launch. */
-export const TREASURY_ADDRESS = 'UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ';
+/**
+ * Platform treasury (hot wallet) deposits are sent to. Set `VITE_TREASURY_ADDRESS`
+ * in `.env` — must match the `TREASURY_ADDRESS` Supabase secret used by
+ * `ton-deposit-webhook`. The placeholder below only lets the UI render.
+ */
+export const TREASURY_ADDRESS =
+  import.meta.env.VITE_TREASURY_ADDRESS?.trim() ||
+  'UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ';
 
 /** GRAM is priced 1:1 to TON for on-chain transfers in this demo. */
 export function gramToNano(gram: number): string {

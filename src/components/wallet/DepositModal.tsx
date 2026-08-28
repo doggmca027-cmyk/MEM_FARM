@@ -43,16 +43,22 @@ export function DepositModal({ open, onClose }: Props) {
       return;
     }
     if (!valid || busy) return;
+    // the deposit is attributed by the Telegram ID in the transfer comment —
+    // ton-deposit-webhook parses the numeric memo, so send exactly that.
+    const memo = String(profile?.telegramId ?? '').replace(/\D+/g, '');
+    if (!memo) {
+      haptic.notify('error');
+      return;
+    }
     setBusy(true);
     try {
-      const comment = `memefarm:deposit:${profile?.id ?? 'guest'}`;
       const res = await tonConnectUI.sendTransaction({
         validUntil: validUntil(300),
         messages: [
           {
             address: TREASURY_ADDRESS,
             amount: gramToNano(amount),
-            payload: textCommentPayload(comment),
+            payload: textCommentPayload(memo),
           },
         ],
       });
