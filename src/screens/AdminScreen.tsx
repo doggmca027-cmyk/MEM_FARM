@@ -268,7 +268,7 @@ function QueueTab() {
               <div className="relative mt-2 space-y-1.5">
                 <div className="flex gap-2">
                   <GameButton accent="lime" block disabled={busy === r.txId} onClick={() => doApproveAuto(r.txId)}>
-                    Підтвердити
+                    Схвалити
                   </GameButton>
                   <GameButton accent="pink" block disabled={busy === r.txId} onClick={() => doReject(r.txId)}>
                     Відхилити
