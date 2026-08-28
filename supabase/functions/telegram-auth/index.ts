@@ -29,7 +29,10 @@ const ADMIN_IDS = new Set(
     .filter(Boolean),
 );
 
-const AUTH_DATE_MAX_AGE_SEC = 24 * 60 * 60;
+// initData is only as fresh as the user's last full Mini App launch — Telegram
+// keeps it for the whole session (weeks on desktop). The HMAC already proves
+// authenticity; auth_date is just a replay window, so keep it generous.
+const AUTH_DATE_MAX_AGE_SEC = 30 * 24 * 60 * 60;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -67,27 +70,36 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Validate the Telegram WebApp initData string. Returns parsed params or null. */
-async function verifyInitData(initData: string): Promise<URLSearchParams | null> {
+/** Validate the Telegram WebApp initData string. Returns parsed params or an error tag. */
+async function verifyInitData(
+  initData: string,
+): Promise<{ params: URLSearchParams } | { error: string }> {
   const params = new URLSearchParams(initData);
   const hash = params.get('hash');
-  if (!hash) return null;
+  if (!hash) return { error: 'no hash in initData' };
 
   params.delete('hash');
+  params.delete('signature'); // Telegram's Ed25519 field — not part of the HMAC check string
   const dataCheckString = [...params.entries()]
     .map(([k, v]) => `${k}=${v}`)
     .sort()
     .join('\n');
 
-  // secret_key = HMAC_SHA256(message = bot_token, key = "WebAppData")
+  // secret_key = HMAC_SHA256(key = "WebAppData", data = bot_token)
   const secretKey = await hmacSha256(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
   const computed = toHex(await hmacSha256(secretKey, dataCheckString));
-  if (!timingSafeEqual(computed, hash)) return null;
+  if (!timingSafeEqual(computed, hash)) {
+    return { error: `hash mismatch (bot token vs initData)` };
+  }
 
   const authDate = Number(params.get('auth_date') ?? '0');
-  if (!authDate || Date.now() / 1000 - authDate > AUTH_DATE_MAX_AGE_SEC) return null;
+  if (!authDate) return { error: 'no auth_date' };
+  const ageSec = Math.floor(Date.now() / 1000 - authDate);
+  if (ageSec > AUTH_DATE_MAX_AGE_SEC) {
+    return { error: `initData too old (${Math.floor(ageSec / 86400)}d) — relaunch the app` };
+  }
 
-  return params;
+  return { params };
 }
 
 Deno.serve(async (req) => {
@@ -107,8 +119,9 @@ Deno.serve(async (req) => {
   const initData = (body.initData ?? '').trim();
   if (!initData) return json({ error: 'missing initData' }, 400);
 
-  const params = await verifyInitData(initData);
-  if (!params) return json({ error: 'invalid or expired initData' }, 401);
+  const verified = await verifyInitData(initData);
+  if ('error' in verified) return json({ error: verified.error }, 401);
+  const params = verified.params;
 
   let tgUser: { id?: number; username?: string; first_name?: string };
   try {
