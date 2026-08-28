@@ -13,7 +13,6 @@ import { GramIcon } from '../components/icons/Icons';
 import { TierSlotRow } from '../components/farm/TierSlotRow';
 import { CollectionStrip } from '../components/farm/CollectionStrip';
 import { StudyModal } from '../components/farm/StudyModal';
-import { HatEquipModal } from '../components/farm/HatEquipModal';
 import { GachaRevealModal } from '../components/farm/GachaRevealModal';
 
 export function FarmScreen() {
@@ -30,7 +29,6 @@ export function FarmScreen() {
 
   const [expanded, setExpanded] = useState<TierId | null>(1);
   const [studyOpen, setStudyOpen] = useState(false);
-  const [hatTier, setHatTier] = useState<TierId | null>(null);
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
@@ -157,7 +155,6 @@ export function FarmScreen() {
                 haptic.select();
                 setExpanded((cur) => (cur === row.tier ? null : row.tier));
               }}
-              onOpenHat={setHatTier}
               onRoll={onRoll}
             />
           ))}
@@ -169,7 +166,6 @@ export function FarmScreen() {
 
       {/* ================= MODALS ================= */}
       <StudyModal open={studyOpen} onClose={() => setStudyOpen(false)} />
-      <HatEquipModal open={hatTier != null} tier={hatTier} onClose={() => setHatTier(null)} />
       <GachaRevealModal />
     </div>
   );

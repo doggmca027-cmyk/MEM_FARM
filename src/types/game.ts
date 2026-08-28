@@ -6,28 +6,6 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type TierId = 1 | 2 | 3 | 4 | 5 | 6;
 export type CardSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
-/** Wearable that buffs a whole tier (only "hat" for now). */
-export interface Equipment {
-  id: string;
-  name: string;
-  slot: 'hat';
-  /** Tier-wide income boost, percent (+10 … +30). */
-  bonusPct: number;
-  imageUrl?: string;
-}
-
-/** An owned hat sitting in the player's inventory. */
-export interface HatItem {
-  id: string;
-  name: string;
-  bonusPct: number;
-  rarity: Rarity;
-  /** Emoji placeholder until sticker art lands. */
-  emoji: string;
-  /** id of the tier this hat is equipped into (`tier-<n>`), or null if benched. */
-  equippedTierId: string | null;
-}
-
 export interface MemeCharacter {
   id: string;
   name: string;
@@ -51,8 +29,7 @@ export interface TierRow {
   tier: TierId;
   /** Roll price, GRAM. */
   costGram: number;
-  hat: Equipment | null;
-  /** Distinct card slots (1..5) the player has rolled at least once. */
+  /** Distinct card slots (1..10) the player has rolled at least once. */
   discovered: CardSlot[];
   /** Every character instance rolled from this tier (all live on the farm). */
   characters: MemeCharacter[];

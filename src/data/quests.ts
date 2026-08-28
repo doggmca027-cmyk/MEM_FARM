@@ -6,7 +6,7 @@ export const STREAK_DAYS: StreakDay[] = [
   { day: 2, rewards: [{ kind: 'gram', amount: 0.05 }] },
   { day: 3, rewards: [{ kind: 'tickets', amount: 2 }] },
   { day: 4, rewards: [{ kind: 'xp', amount: 300 }] },
-  { day: 5, rewards: [{ kind: 'fragments', amount: 3 }] },
+  { day: 5, rewards: [{ kind: 'tickets', amount: 1 }] },
   { day: 6, rewards: [{ kind: 'gram', amount: 0.12 }] },
   {
     day: 7,
@@ -43,7 +43,7 @@ export const DEFAULT_QUESTS: Quest[] = [
     goal: 2,
     progress: 0,
     claimed: false,
-    reward: { kind: 'fragments', amount: 2 },
+    reward: { kind: 'xp', amount: 250 },
   },
   {
     id: 'study_upgrade',

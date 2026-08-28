@@ -46,14 +46,3 @@ export function characterArtPrompt(name: string, memeType: MemeType, rarity: Rar
   };
   return `2D vector game asset sticker of ${base[memeType]} named ${name}, ${flair[rarity]}, ${PROMPT_TAIL}`;
 }
-
-/** Copy-paste AI prompt for a hat sticker. */
-export function hatArtPrompt(name: string): string {
-  const subject: Record<string, string> = {
-    'Pixel Cap': 'a blocky 8-bit pixel-art baseball cap, lime green',
-    'Magic Hat': 'a pointed wizard hat with stars and a crescent moon, deep purple',
-    'Gold Crown': 'a chunky royal gold crown with glowing gems, yellow',
-    'Cursed Cap': 'a tattered dark military cap wrapped in purple cursed flames',
-  };
-  return `2D vector game asset sticker of ${subject[name] ?? `${name} hat`}, ${PROMPT_TAIL}`;
-}

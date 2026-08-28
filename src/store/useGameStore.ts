@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import type {
   CardSlot,
-  Equipment,
   FarmState,
-  HatItem,
   MemeCharacter,
   MergeOutcome,
   TierId,
@@ -60,9 +58,6 @@ function mockHash(): string {
 function newInstanceId(): string {
   return `uc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
-
-/** `tier-<n>` — the key stored on `HatItem.equippedTierId`. */
-export const tierKey = (tier: TierId): string => `tier-${tier}`;
 
 // --- withdrawal rules --------------------------------------------------
 
@@ -146,14 +141,14 @@ function bumpQuests(quests: Quest[], id: QuestId, n = 1): Quest[] {
 
 // --- income math --------------------------------------------------------
 
-function tierIncome(row: TierRow, hats: HatItem[]): number {
-  const base = row.characters.reduce((sum, c) => sum + c.currentIncome, 0);
-  const hat = hats.find((h) => h.equippedTierId === tierKey(row.tier));
-  return base * (1 + (hat?.bonusPct ?? 0) / 100);
-}
-
-function totalIncome(tiers: TierRow[], hats: HatItem[]): number {
-  return round4(tiers.reduce((sum, r) => sum + tierIncome(r, hats), 0));
+/** Sum of every owned character's daily income across all tiers. */
+function totalIncome(tiers: TierRow[]): number {
+  return round4(
+    tiers.reduce(
+      (sum, r) => sum + r.characters.reduce((s, c) => s + c.currentIncome, 0),
+      0,
+    ),
+  );
 }
 
 function characterFromCard(card: GachaCard): MemeCharacter {
@@ -179,15 +174,8 @@ function seedInstance(tier: TierId, slot: CardSlot, n: number): MemeCharacter {
   return { ...characterFromCard(card), id: `uc-seed-t${tier}s${slot}-${n}` };
 }
 
-const HATS: HatItem[] = [
-  { id: 'hat-pixel', name: 'Pixel Cap', bonusPct: 10, rarity: 'uncommon', emoji: '🧢', equippedTierId: null },
-  { id: 'hat-magic', name: 'Magic Hat', bonusPct: 15, rarity: 'rare', emoji: '🎩', equippedTierId: null },
-  { id: 'hat-cursed', name: 'Cursed Cap', bonusPct: 25, rarity: 'epic', emoji: '🪖', equippedTierId: null },
-  { id: 'hat-crown', name: 'Gold Crown', bonusPct: 30, rarity: 'legendary', emoji: '👑', equippedTierId: null },
-];
-
 const SEED_TIERS: TierRow[] = TIER_IDS.map((tier) => {
-  const row: TierRow = { tier, costGram: TIER_COST[tier], hat: null, discovered: [], characters: [] };
+  const row: TierRow = { tier, costGram: TIER_COST[tier], discovered: [], characters: [] };
   if (tier === 1) {
     row.discovered = [1, 2];
     row.characters = [seedInstance(1, 1, 1), seedInstance(1, 1, 2), seedInstance(1, 2, 1)];
@@ -198,7 +186,7 @@ const SEED_TIERS: TierRow[] = TIER_IDS.map((tier) => {
   return row;
 });
 
-const INCOME_PER_DAY = totalIncome(SEED_TIERS, HATS);
+const INCOME_PER_DAY = totalIncome(SEED_TIERS);
 
 // --- store -----------------------------------------------------------------
 
@@ -224,7 +212,6 @@ interface GameStore {
 
   farm: FarmState;
   tiers: TierRow[];
-  hats: HatItem[];
   transactions: Transaction[];
 
   /** Non-null while the GachaRevealModal is showing a fresh pull. */
@@ -240,7 +227,6 @@ interface GameStore {
   streakDay: number; // consecutive days claimed, 0..7
   lastCheckInAt: number | null;
   dailyChestClaimed: boolean;
-  fragments: number;
   dailyBuffUntil: number; // epoch ms, 0 = none
   dailyBuffPct: number;
 
@@ -284,7 +270,6 @@ interface GameStore {
   /** Risk/Reward merge of 2 same-name, same-level cards → sets `mergeResult`. Live: `merge_user_characters`. */
   mergeCharacters: (name: string, level: number) => void;
   dismissMergeResult: () => void;
-  equipHat: (tier: TierId, hatId: string | null) => void;
 
   /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
   claimDailyCheckIn: () => void;
@@ -328,7 +313,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     claimableGram: 0,
   },
   tiers: SEED_TIERS,
-  hats: HATS,
   transactions: [
     { id: 'tx-seed-1', type: 'DEPOSIT', amount: 10, status: 'COMPLETED', timestamp: bootNow - 3 * DAY_MS, txHash: mockHash() },
     { id: 'tx-seed-2', type: 'TIER_ROLL', amount: 2, status: 'COMPLETED', timestamp: bootNow - 2 * DAY_MS, txHash: mockHash() },
@@ -353,7 +337,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   streakDay: 3,
   lastCheckInAt: bootNow - 30 * 60 * 60 * 1000, // ~1.25 days ago → checkable
   dailyChestClaimed: false,
-  fragments: 6,
   dailyBuffUntil: 0,
   dailyBuffPct: 0,
 
@@ -415,7 +398,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         farm: farmData.farm,
         tiers: farmData.tiers,
         transactions: txs,
-        hats: st.hats, // hat inventory stays local until it has its own endpoint
       }));
 
       // referral dashboard — non-fatal if it fails
@@ -644,7 +626,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
             }
           : r,
       );
-      const incomePerDay = totalIncome(tiers, st.hats);
+      const incomePerDay = totalIncome(tiers);
       return {
         xp: st.xp - cost,
         tiers,
@@ -736,7 +718,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         timestamp: t,
         txHash: mockHash(),
       };
-      const incomePerDay = totalIncome(tiers, st.hats);
+      const incomePerDay = totalIncome(tiers);
 
       return {
         balanceGram: round4(st.balanceGram - fee),
@@ -765,23 +747,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
 
   dismissMergeResult: () => set({ mergeResult: null }),
-
-  equipHat: (tier, hatId) =>
-    set((s) => {
-      const key = tierKey(tier);
-      const hats = s.hats.map((h) => {
-        if (h.id === hatId) return { ...h, equippedTierId: key };
-        if (h.equippedTierId === key) return { ...h, equippedTierId: null };
-        return h;
-      });
-      const equipped = hatId ? hats.find((h) => h.id === hatId) ?? null : null;
-      const asEquipment: Equipment | null = equipped
-        ? { id: equipped.id, name: equipped.name, slot: 'hat', bonusPct: equipped.bonusPct }
-        : null;
-      const tiers = s.tiers.map((r) => (r.tier === tier ? { ...r, hat: asEquipment } : r));
-      const incomePerDay = totalIncome(tiers, hats);
-      return { hats, tiers, incomePerDay, farm: { ...s.farm, totalIncomePerDay: incomePerDay } };
-    }),
 
   claimDailyCheckIn: () =>
     set((s) => {
@@ -830,7 +795,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       const rewards: Reward[] = won
         ? [
             { kind: 'xp', amount: 180 },
-            { kind: 'fragments', amount: 2 },
+            { kind: 'gram', amount: 0.01 },
           ]
         : [{ kind: 'xp', amount: 40 }];
 
@@ -929,7 +894,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 // --- rewards -----------------------------------------------------------
 
 function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
-  let { xp, balanceGram, raidTickets, fragments, dailyBuffUntil, dailyBuffPct, tiers } = st;
+  let { xp, balanceGram, raidTickets, dailyBuffUntil, dailyBuffPct, tiers } = st;
 
   for (const r of rewards) {
     switch (r.kind) {
@@ -941,9 +906,6 @@ function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
         break;
       case 'tickets':
         raidTickets = Math.min(MAX_RAID_TICKETS, raidTickets + r.amount);
-        break;
-      case 'fragments':
-        fragments += r.amount;
         break;
       case 'buff':
         dailyBuffUntil = Date.now() + DAILY_BUFF_MS;
@@ -968,12 +930,11 @@ function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
     }
   }
 
-  const incomePerDay = totalIncome(tiers, st.hats);
+  const incomePerDay = totalIncome(tiers);
   return {
     xp,
     balanceGram,
     raidTickets,
-    fragments,
     dailyBuffUntil,
     dailyBuffPct,
     tiers,
@@ -1015,7 +976,7 @@ function applyRoll(
       timestamp: t,
       txHash: s.mode === 'live' ? null : mockHash(),
     };
-    const incomePerDay = totalIncome(tiers, s.hats);
+    const incomePerDay = totalIncome(tiers);
     return {
       balanceGram: round4(balanceOverride ?? s.balanceGram - row.costGram),
       tiers,
@@ -1102,10 +1063,6 @@ export const selectDiscoveredCount = (s: GameStore): number =>
 /** Sum of every owned instance's PvP power. */
 export const selectFarmPower = (s: GameStore): number =>
   Math.round(flattenCharacters(s.tiers).reduce((sum, c) => sum + c.power, 0));
-
-/** Total equipped-hat income boost, percent (e.g. 45 → "+45%"). */
-export const selectBoostPct = (s: GameStore): number =>
-  s.hats.filter((h) => h.equippedTierId != null).reduce((sum, h) => sum + h.bonusPct, 0);
 
 /** Daily income after the streak-7 buff, if active. */
 export const selectEffectiveIncome = (s: GameStore): number =>

@@ -422,8 +422,7 @@ export async function fetchFarmData(): Promise<FarmData> {
     return {
       tier,
       costGram: row ? num(row.cost_gram) : TIER_COST[tier],
-      hat: null, // hat inventory is client-side for now
-      discovered: (row?.discovered ?? []).filter((n): n is CardSlot => n >= 1 && n <= 5),
+      discovered: (row?.discovered ?? []).filter((n): n is CardSlot => n >= 1 && n <= 10),
       characters: own,
     };
   });

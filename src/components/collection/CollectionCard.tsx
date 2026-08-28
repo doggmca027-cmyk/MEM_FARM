@@ -5,8 +5,6 @@ import { characterArtPrompt, MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../
 import { fmtGram, formatNum } from '../../lib/format';
 import { GramIcon } from '../icons/Icons';
 
-const SHARD_CAP = 8;
-
 interface Props {
   group: CollectionGroup;
   index: number;
@@ -18,7 +16,6 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
   const c = group.sample;
   const hex = RARITY_HEX[c.rarity];
   const canMerge = group.mergeableLevel > 0;
-  const shards = Math.min(SHARD_CAP, group.count + (c.currentIncome % 1));
 
   return (
     <motion.div
@@ -68,22 +65,6 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
             <Zap className="h-3 w-3" strokeWidth={3} />
             {formatNum(c.power)}
           </span>
-        </div>
-      </div>
-
-      {/* fragments */}
-      <div className="relative mt-2">
-        <div className="flex items-center justify-between text-[9px] font-bold text-white/45">
-          <span>Фрагменти</span>
-          <span>
-            {shards.toFixed(4)} / {SHARD_CAP}
-          </span>
-        </div>
-        <div className="mt-0.5 h-2 w-full overflow-hidden rounded-full border-2 border-black bg-black/40">
-          <div
-            className="h-full rounded-full bg-diamond"
-            style={{ width: `${(shards / SHARD_CAP) * 100}%`, backgroundColor: hex }}
-          />
         </div>
       </div>
 

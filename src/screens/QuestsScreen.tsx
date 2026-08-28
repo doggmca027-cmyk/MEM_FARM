@@ -24,8 +24,6 @@ function rewardChip(r: Reward): { icon: ReactNode; text: string } {
       return { icon: <GramIcon className="h-3 w-3" />, text: fmtGram(r.amount, 3) };
     case 'tickets':
       return { icon: <span className="text-[10px]">⚡</span>, text: `×${r.amount}` };
-    case 'fragments':
-      return { icon: <span className="text-[10px]">◆</span>, text: `×${r.amount}` };
     case 'case':
       return { icon: <Gift className="h-3 w-3" strokeWidth={3} />, text: 'Кейс' };
     case 'buff':
@@ -38,7 +36,6 @@ function rewardChip(r: Reward): { icon: ReactNode; text: string } {
 export function QuestsScreen() {
   const streakDay = useGameStore((s) => s.streakDay);
   const quests = useGameStore((s) => s.quests);
-  const fragments = useGameStore((s) => s.fragments);
   const dailyChestClaimed = useGameStore((s) => s.dailyChestClaimed);
   const canCheckIn = useGameStore(selectCanCheckIn);
   const progress = useGameStore(selectDailyProgress);
@@ -141,7 +138,7 @@ export function QuestsScreen() {
         <div className="mb-2 flex items-end justify-between">
           <h2 className="font-display text-lg text-stroke">Щоденні завдання</h2>
           <span className="text-xs font-bold text-white/45">
-            {progress.done}/{progress.total} виконано · ◆ {fragments}
+            {progress.done}/{progress.total} виконано
           </span>
         </div>
 

@@ -1,7 +1,7 @@
 import type { MemeType } from './game';
 
 export type QuestId = 'farm_claim' | 'tier_roll' | 'raid_win' | 'study_upgrade';
-export type RewardKind = 'xp' | 'gram' | 'tickets' | 'fragments' | 'case' | 'buff';
+export type RewardKind = 'xp' | 'gram' | 'tickets' | 'case' | 'buff';
 
 export interface Reward {
   kind: RewardKind;

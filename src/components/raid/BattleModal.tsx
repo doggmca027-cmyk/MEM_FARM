@@ -13,7 +13,6 @@ type Stage = 'vs' | 'result';
 
 function rewardText(r: Reward): string {
   if (r.kind === 'xp') return `+${r.amount} XP`;
-  if (r.kind === 'fragments') return `+${r.amount} ◆ фрагменти`;
   if (r.kind === 'gram') return `+${r.amount} GRAM`;
   if (r.kind === 'tickets') return `+${r.amount} ⚡`;
   return `+${r.amount}`;

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Dice5, Lock, Plus } from 'lucide-react';
+import { ChevronDown, Dice5, Lock } from 'lucide-react';
 import type { CardSlot, TierId, TierRow } from '../../types/game';
 import { SLOT_RARITY, tierPool } from '../../data/tiers';
 import { useGameStore } from '../../store/useGameStore';
@@ -31,18 +31,15 @@ interface Props {
   index: number;
   expanded: boolean;
   onToggle: () => void;
-  onOpenHat: (tier: TierId) => void;
   onRoll: (tier: TierId) => void;
 }
 
-export function TierSlotRow({ row, index, expanded, onToggle, onOpenHat, onRoll }: Props) {
+export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
   const balanceGram = useGameStore((s) => s.balanceGram);
-  const hats = useGameStore((s) => s.hats);
 
   const hex = TIER_HEX[row.tier];
   const pool = tierPool(row.tier);
   const discovered = row.discovered.length;
-  const equippedHat = hats.find((h) => h.equippedTierId === `tier-${row.tier}`) ?? null;
   const canRoll = balanceGram + 1e-9 >= row.costGram;
 
   const slotIncome = (slot: CardSlot) =>
@@ -107,71 +104,45 @@ export function TierSlotRow({ row, index, expanded, onToggle, onOpenHat, onRoll 
             transition={{ duration: 0.22, ease: 'easeOut' }}
             className="relative overflow-hidden"
           >
-            <div className="flex items-stretch gap-2 px-3 pb-1">
-              {/* hat / boost slot */}
-              <button
-                type="button"
-                onClick={() => onOpenHat(row.tier)}
-                className="flex w-14 flex-none flex-col items-center justify-center gap-1 rounded-2xl border-2 border-black bg-farm-deep py-2"
-                style={equippedHat ? { boxShadow: `0 0 14px ${hex}, inset 0 0 0 2px ${hex}` } : undefined}
-              >
-                {equippedHat ? (
-                  <>
-                    <span className="text-xl leading-none">{equippedHat.emoji}</span>
-                    <span className="rounded-md border border-black bg-neon-yellow px-1 text-[9px] font-extrabold leading-3 text-black">
-                      +{equippedHat.bonusPct}%
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-dashed border-white/40 text-white/50">
-                      <Plus className="h-3.5 w-3.5" strokeWidth={3} />
-                    </span>
-                    <span className="text-[9px] font-bold uppercase text-white/40">Boost</span>
-                  </>
-                )}
-              </button>
-
-              {/* the five tier cards */}
-              <div className="flex flex-1 items-start gap-1.5 overflow-x-auto pb-1">
-                {pool.map((card) => {
-                  const owned = row.discovered.includes(card.slot);
-                  const rHex = RARITY_HEX[SLOT_RARITY[card.slot]];
-                  const n = slotCount(card.slot);
-                  return (
-                    <div key={card.slot} className="flex flex-none flex-col items-center gap-0.5">
-                      <div
-                        className="relative grid h-12 w-12 place-items-center rounded-xl border-2 border-black text-xl"
-                        style={
-                          owned
-                            ? { borderColor: rHex, backgroundColor: '#1E1035', boxShadow: `0 0 10px ${rHex}88` }
-                            : { backgroundColor: 'rgba(0,0,0,0.45)' }
-                        }
-                        title={owned ? card.name : `${card.name} · ${card.weight}%`}
-                      >
-                        {owned ? (
-                          <span className="drop-shadow-[1px_2px_0_rgba(0,0,0,0.5)]">
-                            {MEME_EMOJI[card.memeType]}
-                          </span>
-                        ) : (
-                          <Lock className="h-4 w-4 text-white/30" strokeWidth={2.5} />
-                        )}
-                        {n > 1 && (
-                          <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-black bg-neon-pink px-1 text-[8px] font-extrabold leading-3 text-white">
-                            x{n}
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className="text-[9px] font-bold leading-none"
-                        style={{ color: owned ? '#84CC16' : 'rgba(255,255,255,0.3)' }}
-                      >
-                        {owned ? `+${fmtGram(slotIncome(card.slot), 3)}` : '—'}
-                      </span>
+            {/* the ten tier cards */}
+            <div className="flex items-start gap-1.5 overflow-x-auto px-3 pb-1">
+              {pool.map((card) => {
+                const owned = row.discovered.includes(card.slot);
+                const rHex = RARITY_HEX[SLOT_RARITY[card.slot]];
+                const n = slotCount(card.slot);
+                return (
+                  <div key={card.slot} className="flex flex-none flex-col items-center gap-0.5">
+                    <div
+                      className="relative grid h-12 w-12 place-items-center rounded-xl border-2 border-black text-xl"
+                      style={
+                        owned
+                          ? { borderColor: rHex, backgroundColor: '#1E1035', boxShadow: `0 0 10px ${rHex}88` }
+                          : { backgroundColor: 'rgba(0,0,0,0.45)' }
+                      }
+                      title={owned ? card.name : `${card.name} · ${card.weight}%`}
+                    >
+                      {owned ? (
+                        <span className="drop-shadow-[1px_2px_0_rgba(0,0,0,0.5)]">
+                          {MEME_EMOJI[card.memeType]}
+                        </span>
+                      ) : (
+                        <Lock className="h-4 w-4 text-white/30" strokeWidth={2.5} />
+                      )}
+                      {n > 1 && (
+                        <span className="absolute -right-1.5 -top-1.5 rounded-full border-2 border-black bg-neon-pink px-1 text-[8px] font-extrabold leading-3 text-white">
+                          x{n}
+                        </span>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    <span
+                      className="text-[9px] font-bold leading-none"
+                      style={{ color: owned ? '#84CC16' : 'rgba(255,255,255,0.3)' }}
+                    >
+                      {owned ? `+${fmtGram(slotIncome(card.slot), 3)}` : '—'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="px-3 pb-3 pt-1">
