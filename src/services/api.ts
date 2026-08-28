@@ -422,7 +422,7 @@ export async function fetchFarmData(): Promise<FarmData> {
     return {
       tier,
       costGram: row ? num(row.cost_gram) : TIER_COST[tier],
-      discovered: (row?.discovered ?? []).filter((n): n is CardSlot => n >= 1 && n <= 10),
+      discovered: (row?.discovered ?? []).filter((n): n is CardSlot => n >= 1 && n <= 5),
       characters: own,
     };
   });

@@ -31,18 +31,22 @@ export interface LeaderRow {
   name: string;
   memeType: MemeType;
   rating: number;
+  /** Total farm power (⚡). */
+  power: number;
+  /** All-time leaderboard XP (⭐). */
+  xp: number;
 }
 
-/** Static top players — the local user is spliced in by rating at render time. */
+/** Static top players — the local user is spliced in at render time. */
 export const LEADERBOARD: LeaderRow[] = [
-  { name: 'xX_Sigma_Xx', memeType: 'gigachad', rating: 2480 },
-  { name: 'PepeKing', memeType: 'pepe', rating: 2310 },
-  { name: 'DogeMiner', memeType: 'doge', rating: 2180 },
-  { name: 'CapyBaron', memeType: 'capybara', rating: 1990 },
-  { name: 'CyberChad', memeType: 'gigachad', rating: 1840 },
-  { name: 'MoonBoi', memeType: 'pepe', rating: 1620 },
-  { name: 'GigaWhale', memeType: 'gigachad', rating: 1470 },
-  { name: 'RugPuller99', memeType: 'doge', rating: 1290 },
-  { name: 'ApeInAlways', memeType: 'capybara', rating: 1130 },
-  { name: 'FrogWizard', memeType: 'pepe', rating: 1015 },
+  { name: 'xX_Sigma_Xx', memeType: 'gigachad', rating: 2480, power: 41200, xp: 128400 },
+  { name: 'PepeKing', memeType: 'pepe', rating: 2310, power: 37800, xp: 96300 },
+  { name: 'DogeMiner', memeType: 'doge', rating: 2180, power: 33100, xp: 154900 },
+  { name: 'CapyBaron', memeType: 'capybara', rating: 1990, power: 28700, xp: 61200 },
+  { name: 'CyberChad', memeType: 'gigachad', rating: 1840, power: 24500, xp: 88700 },
+  { name: 'MoonBoi', memeType: 'pepe', rating: 1620, power: 19800, xp: 43100 },
+  { name: 'GigaWhale', memeType: 'gigachad', rating: 1470, power: 16400, xp: 72500 },
+  { name: 'RugPuller99', memeType: 'doge', rating: 1290, power: 12900, xp: 21800 },
+  { name: 'ApeInAlways', memeType: 'capybara', rating: 1130, power: 9600, xp: 33400 },
+  { name: 'FrogWizard', memeType: 'pepe', rating: 1015, power: 7300, xp: 15900 },
 ];

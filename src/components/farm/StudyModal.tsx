@@ -5,7 +5,7 @@ import {
   flattenCharacters,
   nextLevelIncome,
   nextLevelPower,
-  upgradeCostXp,
+  studyFeeGram,
   useGameStore,
 } from '../../store/useGameStore';
 import { characterArtPrompt, MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../lib/meme';
@@ -14,6 +14,7 @@ import { firePop } from '../../lib/confetti';
 import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
 import { GameButton } from '../ui/GameButton';
+import { GramIcon } from '../icons/Icons';
 
 interface Props {
   open: boolean;
@@ -24,7 +25,7 @@ interface Props {
 
 export function StudyModal({ open, onClose, characterId = null }: Props) {
   const tiers = useGameStore((s) => s.tiers);
-  const xp = useGameStore((s) => s.xp);
+  const balanceGram = useGameStore((s) => s.balanceGram);
   const upgradeCharacter = useGameStore((s) => s.upgradeCharacter);
 
   const roster = useMemo(() => flattenCharacters(tiers), [tiers]);
@@ -42,8 +43,8 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
   }, [open, characterId, roster]);
 
   const selected = roster.find((c) => c.id === selectedId) ?? null;
-  const cost = selected ? upgradeCostXp(selected.level) : 0;
-  const canAfford = selected ? xp >= cost : false;
+  const fee = selected ? studyFeeGram(selected.level) : 0;
+  const canAfford = selected ? balanceGram + 1e-9 >= fee : false;
   const nextIncome = selected ? nextLevelIncome(selected.currentIncome) : 0;
   const nextPower = selected ? nextLevelPower(selected.power) : 0;
 
@@ -139,12 +140,13 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
 
           {/* cost + action */}
           <div className="mt-4 flex items-center justify-between">
-            <div className="text-xs font-bold text-white/60">
-              Вартість:{' '}
+            <div className="inline-flex items-center gap-1 text-xs font-bold text-white/60">
+              Вартість:
               <span className={canAfford ? 'text-neon-yellow' : 'text-neon-pink'}>
-                {cost} XP
+                <GramIcon className="mb-0.5 mr-0.5 inline h-3.5 w-3.5" />
+                {fmtGram(fee, 3)}
               </span>
-              <span className="text-white/35"> · маєш {xp}</span>
+              <span className="text-white/35">· баланс {fmtGram(balanceGram)}</span>
             </div>
             <GameButton accent="lime" disabled={!canAfford} onClick={doUpgrade}>
               <span className="inline-flex items-center gap-1.5">

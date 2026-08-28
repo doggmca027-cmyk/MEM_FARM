@@ -12,7 +12,7 @@ import { GameButton } from '../ui/GameButton';
 type Stage = 'vs' | 'result';
 
 function rewardText(r: Reward): string {
-  if (r.kind === 'xp') return `+${r.amount} XP`;
+  if (r.kind === 'xp') return `⭐ +${r.amount} XP — очки Топ-10`;
   if (r.kind === 'gram') return `+${r.amount} GRAM`;
   if (r.kind === 'tickets') return `+${r.amount} ⚡`;
   return `+${r.amount}`;

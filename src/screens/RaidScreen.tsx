@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Shield, Swords, Trophy, Zap } from 'lucide-react';
+import { RefreshCw, Shield, Star, Swords, Trophy, Zap } from 'lucide-react';
 import type { RaidOpponent } from '../types/quests';
 import { flattenCharacters, MAX_RAID_TICKETS, selectFarmPower, TICKET_REFILL_MS, useGameStore } from '../store/useGameStore';
 import { LEADERBOARD, pickOpponent } from '../data/raid';
@@ -15,6 +15,7 @@ export function RaidScreen() {
   const raidTickets = useGameStore((s) => s.raidTickets);
   const lastTicketRefillAt = useGameStore((s) => s.lastTicketRefillAt);
   const pvpRating = useGameStore((s) => s.pvpRating);
+  const xp = useGameStore((s) => s.xp);
   const tickDaily = useGameStore((s) => s.tickDaily);
   const startRaidBattle = useGameStore((s) => s.startRaidBattle);
   const userMeme = useGameStore((s) => {
@@ -23,6 +24,7 @@ export function RaidScreen() {
   });
 
   const [sub, setSub] = useState<'arena' | 'leaders'>('arena');
+  const [metric, setMetric] = useState<'power' | 'xp'>('power');
   const [opp, setOpp] = useState<RaidOpponent>(() => pickOpponent(farmPower));
   const [now, setNow] = useState(() => Date.now());
 
@@ -54,14 +56,14 @@ export function RaidScreen() {
 
   const leaders = useMemo(() => {
     const rows = [
-      ...LEADERBOARD,
-      { name: 'Ти', memeType: userMeme, rating: pvpRating, self: true as const },
+      ...LEADERBOARD.map((r) => ({ ...r, self: false })),
+      { name: 'Ти', memeType: userMeme, rating: pvpRating, power: farmPower, xp, self: true },
     ];
     return rows
-      .sort((a, b) => b.rating - a.rating)
+      .sort((a, b) => (metric === 'xp' ? b.xp - a.xp : b.power - a.power))
       .slice(0, 10)
       .map((r, i) => ({ ...r, place: i + 1 }));
-  }, [userMeme, pvpRating]);
+  }, [userMeme, pvpRating, farmPower, xp, metric]);
 
   return (
     <div className="space-y-5">
@@ -161,29 +163,75 @@ export function RaidScreen() {
           </div>
         </motion.div>
       ) : (
-        <ol className="space-y-2">
-          {leaders.map((r) => (
-            <li
-              key={`${r.name}-${r.place}`}
+        <>
+          <div className="mb-3 flex gap-2">
+            <button
+              onClick={() => {
+                haptic.select();
+                setMetric('power');
+              }}
               className={[
-                'flex items-center gap-3 rounded-2xl border-2 border-b-4 border-black border-b-black/40 px-3 py-2.5 backdrop-blur-md',
-                'self' in r && r.self ? 'border-neon-lime bg-neon-lime/10' : 'bg-farm-card/70',
+                'flex-1 inline-flex items-center justify-center gap-1.5 rounded-2xl border-2 border-b-4 border-black px-2 py-2 text-[11px] font-extrabold uppercase',
+                metric === 'power' ? 'border-b-black/40 bg-neon-cyan text-black' : 'border-b-black/40 bg-farm-card text-white/50',
               ].join(' ')}
             >
-              <span className="w-6 flex-none text-center font-display text-lg text-stroke-sm">
-                {r.place <= 3 ? ['🥇', '🥈', '🥉'][r.place - 1] : r.place}
-              </span>
-              <span className="grid h-9 w-9 flex-none place-items-center rounded-xl border-2 border-black bg-farm-deep text-lg">
-                {MEME_EMOJI[r.memeType]}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm font-bold">{r.name}</span>
-              <span className="inline-flex flex-none items-center gap-1 font-display text-sm text-neon-yellow text-stroke-sm">
-                <Trophy className="h-3.5 w-3.5" strokeWidth={3} />
-                {r.rating}
-              </span>
-            </li>
-          ))}
-        </ol>
+              <Zap className="h-3.5 w-3.5" strokeWidth={3} />
+              Топ за Силою
+            </button>
+            <button
+              onClick={() => {
+                haptic.select();
+                setMetric('xp');
+              }}
+              className={[
+                'flex-1 inline-flex items-center justify-center gap-1.5 rounded-2xl border-2 border-b-4 border-black px-2 py-2 text-[11px] font-extrabold uppercase',
+                metric === 'xp' ? 'border-b-black/40 bg-neon-yellow text-black' : 'border-b-black/40 bg-farm-card text-white/50',
+              ].join(' ')}
+            >
+              <Star className="h-3.5 w-3.5" strokeWidth={3} />
+              Топ за Досвідом
+            </button>
+          </div>
+
+          <ol className="space-y-2">
+            {leaders.map((r) => (
+              <li
+                key={`${r.name}-${r.place}`}
+                className={[
+                  'flex items-center gap-3 rounded-2xl border-2 border-b-4 border-black border-b-black/40 px-3 py-2.5 backdrop-blur-md',
+                  r.self ? 'border-neon-lime bg-neon-lime/10' : 'bg-farm-card/70',
+                ].join(' ')}
+              >
+                <span className="w-6 flex-none text-center font-display text-lg text-stroke-sm">
+                  {r.place <= 3 ? ['🥇', '🥈', '🥉'][r.place - 1] : r.place}
+                </span>
+                <span className="grid h-9 w-9 flex-none place-items-center rounded-xl border-2 border-black bg-farm-deep text-lg">
+                  {MEME_EMOJI[r.memeType]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold">{r.name}</div>
+                  <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-neon-yellow">
+                    <Star className="h-3 w-3 fill-neon-yellow" strokeWidth={2.5} />
+                    {formatNum(r.xp)} XP
+                  </div>
+                </div>
+                <span className="inline-flex flex-none items-center gap-1 font-display text-sm text-neon-cyan text-stroke-sm">
+                  {metric === 'xp' ? (
+                    <>
+                      <Star className="h-3.5 w-3.5" strokeWidth={3} />
+                      {formatNum(r.xp)}
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3.5 w-3.5" strokeWidth={3} />
+                      {formatNum(r.power)}
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </>
       )}
 
       <BattleModal />

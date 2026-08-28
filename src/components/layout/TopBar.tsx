@@ -1,9 +1,9 @@
 import { TonConnectButton } from '@tonconnect/ui-react';
-import { Crown, Settings } from 'lucide-react';
+import { Crown, Settings, Star } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
-import { fmtGram } from '../../lib/format';
+import { fmtGram, formatNum } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
-import { CoinIcon, GramIcon } from '../icons/Icons';
+import { GramIcon } from '../icons/Icons';
 import { Chip } from '../ui/Chip';
 
 const TAB_TITLE: Record<string, string> = {
@@ -33,8 +33,11 @@ export function TopBar({ level = 7 }: { level?: number }) {
           <Chip icon={<GramIcon className="h-4 w-4" />} className="bg-farm-card text-neon-cyan">
             {fmtGram(balanceGram)}
           </Chip>
-          <Chip icon={<CoinIcon className="h-4 w-4" />} className="bg-farm-card text-neon-yellow">
-            {xp}
+          <Chip
+            icon={<Star className="h-3.5 w-3.5 fill-neon-yellow" strokeWidth={2.5} />}
+            className="bg-farm-card text-neon-yellow"
+          >
+            {formatNum(xp)} XP
           </Chip>
         </div>
 

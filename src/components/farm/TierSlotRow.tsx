@@ -40,7 +40,7 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
   const hex = TIER_HEX[row.tier];
   const pool = tierPool(row.tier);
   const discovered = row.discovered.length;
-  const canRoll = balanceGram + 1e-9 >= row.costGram;
+  const affordable = balanceGram + 1e-9 >= row.costGram;
 
   const slotIncome = (slot: CardSlot) =>
     row.characters.filter((c) => c.cardSlot === slot).reduce((sum, c) => sum + c.currentIncome, 0);
@@ -87,6 +87,7 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
         </span>
 
         <span className="ml-auto flex-none font-display text-sm text-stroke-sm">
+          <span className="mr-1 text-[9px] font-bold uppercase text-white/40">Відкрито</span>
           {discovered}/{pool.length}
         </span>
         <span className="flex-none inline-flex items-center gap-1 rounded-lg border-2 border-black bg-farm-deep px-1.5 py-0.5 text-[11px] font-bold leading-none text-neon-cyan">
@@ -149,9 +150,8 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
               <GameButton
                 accent={TIER_ACCENT[row.tier]}
                 block
-                disabled={!canRoll}
                 onClick={() => onRoll(row.tier)}
-                className="text-sm"
+                className={`text-sm ${affordable ? '' : 'opacity-70'}`}
               >
                 <span className="inline-flex items-center gap-1.5">
                   <Dice5 className="h-4 w-4" strokeWidth={3} />

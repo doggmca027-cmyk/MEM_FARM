@@ -71,9 +71,15 @@ export function withdrawalFee(amount: number): number {
   return round4(Math.max(WITHDRAW_FEE_MIN, amount * WITHDRAW_FEE_PCT));
 }
 
-export function upgradeCostXp(level: number): number {
-  return Math.round(250 * Math.pow(1.8, level - 1));
+/** Study fee, GRAM — `0.05 * 1.5^(level-1)`. */
+export function studyFeeGram(level: number): number {
+  return round4(0.05 * Math.pow(1.5, level - 1));
 }
+
+/** Bonus leaderboard XP granted per action (never spent). */
+export const XP_PER_ROLL = 10;
+export const XP_MERGE_BASE = 30;
+export const XP_MERGE_PER_LEVEL = 15;
 
 /** Study: doubles daily income per level. */
 export function nextLevelIncome(current: number): number {
@@ -265,7 +271,7 @@ interface GameStore {
   rollTier: (tier: TierId) => void;
   dismissReveal: () => void;
 
-  /** Study: spend XP → +level, income ×2, power ×1.5. Live path: `study_upgrade_character`. */
+  /** Study: spend GRAM → +level, income ×2, power ×1.5. Live path: `study_upgrade_character`. */
   upgradeCharacter: (characterId: string) => void;
   /** Risk/Reward merge of 2 same-name, same-level cards → sets `mergeResult`. Live: `merge_user_characters`. */
   mergeCharacters: (name: string, level: number) => void;
@@ -590,7 +596,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const owner = s.tiers.find((r) => r.characters.some((c) => c.id === characterId));
     const target = owner?.characters.find((c) => c.id === characterId);
     if (!owner || !target) return;
-    if (s.xp < upgradeCostXp(target.level)) return;
+    if (s.balanceGram + 1e-9 < studyFeeGram(target.level)) return;
 
     if (s.mode === 'live') {
       try {
@@ -606,8 +612,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       const own = st.tiers.find((r) => r.characters.some((c) => c.id === characterId));
       const tgt = own?.characters.find((c) => c.id === characterId);
       if (!own || !tgt) return st;
-      const cost = upgradeCostXp(tgt.level);
-      if (st.xp < cost) return st;
+      const fee = studyFeeGram(tgt.level);
+      if (st.balanceGram + 1e-9 < fee) return st;
 
       const tiers = st.tiers.map((r) =>
         r.tier === own.tier
@@ -627,9 +633,19 @@ export const useGameStore = create<GameStore>()((set, get) => ({
           : r,
       );
       const incomePerDay = totalIncome(tiers);
+      const t = Date.now();
+      const tx: Transaction = {
+        id: `tx-${t}`,
+        type: 'STUDY_FEE',
+        amount: fee,
+        status: 'COMPLETED',
+        timestamp: t,
+        txHash: mockHash(),
+      };
       return {
-        xp: st.xp - cost,
+        balanceGram: round4(st.balanceGram - fee),
         tiers,
+        transactions: [tx, ...st.transactions],
         incomePerDay,
         farm: { ...st.farm, totalIncomePerDay: incomePerDay },
         quests: bumpQuests(st.quests, 'study_upgrade'),
@@ -719,9 +735,11 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         txHash: mockHash(),
       };
       const incomePerDay = totalIncome(tiers);
+      const gainedXp = isFail ? 0 : XP_MERGE_BASE + (newLevel - level) * XP_MERGE_PER_LEVEL;
 
       return {
         balanceGram: round4(st.balanceGram - fee),
+        xp: st.xp + gainedXp,
         tiers,
         transactions: [tx, ...st.transactions],
         incomePerDay,
@@ -979,6 +997,7 @@ function applyRoll(
     const incomePerDay = totalIncome(tiers);
     return {
       balanceGram: round4(balanceOverride ?? s.balanceGram - row.costGram),
+      xp: s.xp + XP_PER_ROLL,
       tiers,
       transactions: [tx, ...s.transactions],
       incomePerDay,
