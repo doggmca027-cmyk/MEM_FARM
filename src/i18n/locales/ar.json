@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "المهام", "farm": "المزرعة", "raid": "الغارة", "invite": "الأصدقاء", "wallet": "المحفظة" },
+  "nav": {
+    "quests": "المهام",
+    "farm": "المزرعة",
+    "raid": "الغارة",
+    "invite": "الأصدقاء",
+    "wallet": "المحفظة"
+  },
   "tabTitle": {
     "quests": "المهام اليومية",
     "farm": "مزرعة الميمات خاصتك",
@@ -85,7 +91,10 @@
     "winChanceWas": "كانت فرصة الفوز {n}%",
     "ratingLine": "{delta} تقييم · {total}",
     "xpTop10": "⭐ +{n} XP — نقاط أفضل 10",
-    "rematch": "إعادة المباراة"
+    "rematch": "إعادة المباراة",
+    "pot": "المجمّع",
+    "commission": "العمولة (10%)",
+    "netWin": "صافي الربح"
   },
   "raid": {
     "farmPower": "قوة المزرعة",
@@ -98,7 +107,17 @@
     "power": "القوة {n}",
     "chance": "الاحتمال",
     "findAnother": "ابحث عن آخر",
-    "attack": "هجوم · ⚡1"
+    "attack": "هجوم · ⚡1",
+    "balance": "الرصيد",
+    "stake": "الرهان",
+    "winPreview": "الربح {n}",
+    "pot": "المجمّع",
+    "fightForStake": "رهان {n} — قتال",
+    "insufficientForStake": "لا يوجد GRAM كافٍ لهذا الرهان",
+    "waiting": "بانتظار خصم · {n} GRAM",
+    "cancel": "إلغاء",
+    "openLobbies": "الطاولات المفتوحة",
+    "join": "انضمام"
   },
   "quests": {
     "streakTitle": "سلسلة يومية",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "إحالة",
     "STREAK_REWARD": "سلسلة",
     "QUEST_REWARD": "مهمة",
-    "REFUND": "استرداد"
+    "REFUND": "استرداد",
+    "WAGER_STAKE": "رهان PvP",
+    "WAGER_PAYOUT": "أرباح PvP"
   },
   "deposit": {
     "title": "إيداع GRAM",

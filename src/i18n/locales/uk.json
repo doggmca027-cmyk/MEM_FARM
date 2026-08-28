@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Завдання", "farm": "Ферма", "raid": "Рейд", "invite": "Друзі", "wallet": "Гаманець" },
+  "nav": {
+    "quests": "Завдання",
+    "farm": "Ферма",
+    "raid": "Рейд",
+    "invite": "Друзі",
+    "wallet": "Гаманець"
+  },
   "tabTitle": {
     "quests": "Щоденні завдання",
     "farm": "Твоя мем-ферма",
@@ -85,7 +91,10 @@
     "winChanceWas": "Шанс перемоги був {n}%",
     "ratingLine": "{delta} рейтингу · {total}",
     "xpTop10": "⭐ +{n} XP — очки Топ-10",
-    "rematch": "Реванш"
+    "rematch": "Реванш",
+    "pot": "Банк",
+    "commission": "Комісія (10%)",
+    "netWin": "Чистий виграш"
   },
   "raid": {
     "farmPower": "Сила ферми",
@@ -98,7 +107,17 @@
     "power": "Сила {n}",
     "chance": "шанс",
     "findAnother": "Знайти іншого",
-    "attack": "Атакувати · ⚡1"
+    "attack": "Атакувати · ⚡1",
+    "balance": "Баланс",
+    "stake": "Ставка",
+    "winPreview": "виграш {n}",
+    "pot": "Банк",
+    "fightForStake": "Ставка {n} — В бій",
+    "insufficientForStake": "Недостатньо GRAM для ставки",
+    "waiting": "Очікування суперника · {n} GRAM",
+    "cancel": "Скасувати",
+    "openLobbies": "Відкриті столи",
+    "join": "Приєднатися"
   },
   "quests": {
     "streakTitle": "Щоденний стрік",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Реферал",
     "STREAK_REWARD": "Стрік",
     "QUEST_REWARD": "Завдання",
-    "REFUND": "Повернення"
+    "REFUND": "Повернення",
+    "WAGER_STAKE": "Ставка PvP",
+    "WAGER_PAYOUT": "Виграш PvP"
   },
   "deposit": {
     "title": "Депозит GRAM",

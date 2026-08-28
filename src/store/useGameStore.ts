@@ -20,18 +20,23 @@ import {
   adminBanUser,
   adminProcessWithdrawal,
   adminUpdateEmissionFactor,
+  cancelPvpLobbyRPC,
   claimIncomeRPC,
   claimReferralRewardsRPC,
+  createPvpLobbyRPC,
   DEFAULT_NOTIF_PREFS,
   fetchFarmData,
+  fetchOpenLobbies,
   fetchReferralData,
   fetchTransactions,
   fetchUserProfile,
+  joinPvpLobbyRPC,
   mergeCharactersRPC,
   requestWithdrawalRPC,
   rollTierRPC,
   studyUpgradeRPC,
   updateNotifPrefs,
+  type LobbyRow,
   type NotifPrefs,
   type ProfileData,
 } from '../services/api';
@@ -136,12 +141,32 @@ export function rollMerge(rng: () => number = Math.random): {
   return { status: delta === 1 ? 'SUCCESS' : 'CRIT', delta, roll: n };
 }
 
-// --- quests / streak / pvp -------------------------------------------------
+// --- quests / streak -----------------------------------------------------
 
-export const MAX_RAID_TICKETS = 5;
-export const TICKET_REFILL_MS = 30 * 60 * 1000; // +1 ticket / 30 min
 export const DAILY_BUFF_MS = 24 * 60 * 60 * 1000;
 export const DAILY_BUFF_PCT = 10;
+
+// --- pvp wager arena ---------------------------------------------------
+
+/** GRAM stake tiers for a duel. */
+export const STAKE_TIERS = [0.1, 0.25, 0.5, 1, 2, 5] as const;
+export type StakeTier = (typeof STAKE_TIERS)[number];
+
+/** Treasury rake on the whole pot. */
+export const PVP_RAKE_PCT = 0.1;
+
+/** Whole pot both players put up: `stake * 2`. */
+export function pvpPot(stake: number): number {
+  return round4(stake * 2);
+}
+/** 10% of the pot skimmed to the project treasury. */
+export function pvpFee(stake: number): number {
+  return round4(pvpPot(stake) * PVP_RAKE_PCT);
+}
+/** Net GRAM credited to the winner: `pot - fee`. */
+export function pvpPayout(stake: number): number {
+  return round4(pvpPot(stake) - pvpFee(stake));
+}
 
 /** Rating gained on a win / lost on a defeat, scaled by the odds you beat. */
 export function pvpRatingDelta(won: boolean, winChance: number): number {
@@ -249,10 +274,14 @@ interface GameStore {
   dailyBuffUntil: number; // epoch ms, 0 = none
   dailyBuffPct: number;
 
-  // pvp
-  raidTickets: number;
-  lastTicketRefillAt: number;
+  // pvp wager arena — no tickets / energy, play as often as your balance allows
   pvpRating: number;
+  /** Selected GRAM stake for the next duel. */
+  pvpStake: StakeTier;
+  /** Your open lobby waiting for an opponent (live mode), else null. */
+  pvpLobby: { id: string; stake: number } | null;
+  /** Other players' open lobbies you can join (live mode). */
+  openLobbies: LobbyRow[];
 
   // referrals
   referralCode: string;
@@ -297,8 +326,20 @@ interface GameStore {
   claimDailyCheckIn: () => void;
   claimQuestReward: (questId: QuestId) => void;
   claimDailyChest: () => void;
-  /** Spend 1 ticket, resolve a PvP battle, set `battle`. Live: `execute_pvp_battle`. */
-  startRaidBattle: (opponent: RaidOpponent) => void;
+
+  /** Pick the GRAM stake for the next duel. */
+  setPvpStake: (stake: StakeTier) => void;
+  /**
+   * Fight a wager duel at `pvpStake`. Mock: resolve instantly vs a bot.
+   * Live: join the oldest open lobby that isn't yours, or open one and wait.
+   */
+  startWagerBattle: (opponent: RaidOpponent) => Promise<void>;
+  /** Live: cancel your own open lobby and refund the stake. */
+  cancelLobby: () => Promise<void>;
+  /** Live: refresh the joinable-lobby list. */
+  refreshLobbies: () => Promise<void>;
+  /** Live: join a specific open lobby by id. */
+  joinLobby: (lobbyId: string) => Promise<void>;
   dismissBattle: () => void;
 
   /** Move accrued referral commission into the main balance. Live: `claim_referral_rewards`. */
@@ -364,9 +405,10 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   dailyBuffUntil: 0,
   dailyBuffPct: 0,
 
-  raidTickets: 5,
-  lastTicketRefillAt: bootNow,
   pvpRating: 1180,
+  pvpStake: 0.25,
+  pvpLobby: null,
+  openLobbies: [],
 
   referralCode: '7H4X9K',
   referralStats: {
@@ -464,27 +506,13 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   tickDaily: () =>
     set((s) => {
       const now = Date.now();
-      const patch: Partial<GameStore> = {};
-
-      // ticket refill
-      if (s.raidTickets < MAX_RAID_TICKETS) {
-        const gained = Math.floor((now - s.lastTicketRefillAt) / TICKET_REFILL_MS);
-        if (gained > 0) {
-          patch.raidTickets = Math.min(MAX_RAID_TICKETS, s.raidTickets + gained);
-          patch.lastTicketRefillAt = s.lastTicketRefillAt + gained * TICKET_REFILL_MS;
-        }
-      } else {
-        patch.lastTicketRefillAt = now;
-      }
-
-      // daily quest rollover
-      if (!isSameUtcDay(s.questsResetAt, now)) {
-        patch.quests = DEFAULT_QUESTS.map((q) => ({ ...q }));
-        patch.questsResetAt = now;
-        patch.dailyChestClaimed = false;
-      }
-
-      return Object.keys(patch).length ? patch : s;
+      // daily quest rollover (no more raid-ticket refill — PvP is unlimited)
+      if (isSameUtcDay(s.questsResetAt, now)) return s;
+      return {
+        quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
+        questsResetAt: now,
+        dailyChestClaimed: false,
+      };
     }),
 
   claim: async () => {
@@ -827,40 +855,94 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       return { ...grantRewards(s, [{ ...DAILY_CHEST_REWARD }]), dailyChestClaimed: true };
     }),
 
-  startRaidBattle: (opponent) =>
-    set((s) => {
-      if (s.raidTickets <= 0) return s;
-      const userPower = Math.round(flattenCharacters(s.tiers).reduce((sum, c) => sum + c.power, 0));
-      const winChance = userPower / (userPower + opponent.power || 1);
-      const won = Math.random() < winChance;
-      const delta = pvpRatingDelta(won, winChance);
-      const newRating = Math.max(0, s.pvpRating + delta);
+  setPvpStake: (stake) => set({ pvpStake: stake }),
 
-      const rewards: Reward[] = won
-        ? [
-            { kind: 'xp', amount: 180 },
-            { kind: 'gram', amount: 0.01 },
-          ]
-        : [{ kind: 'xp', amount: 40 }];
+  startWagerBattle: async (opponent) => {
+    const s = get();
+    const stake = s.pvpStake;
 
-      const battle: BattleResult = {
-        opponent,
-        userPower,
-        won,
-        winChance,
-        ratingDelta: delta,
-        newRating,
-        rewards,
+    if (s.mode === 'live') {
+      // try to join the oldest open lobby at this stake; otherwise open one
+      try {
+        const open = (await fetchOpenLobbies()).filter((l) => l.stake === stake);
+        if (open.length > 0) {
+          await get().joinLobby(open[0].id);
+          return;
+        }
+        const lobby = await createPvpLobbyRPC(stake);
+        await refetchLive(set);
+        set({ pvpLobby: { id: lobby.id, stake } });
+      } catch (err) {
+        console.warn('[store] create/join lobby failed:', err);
+      }
+      return;
+    }
+
+    // ----- mock: resolve instantly vs a bot -----
+    if (s.balanceGram + 1e-9 < stake) return;
+    set((st) => applyWager(st, opponent));
+  },
+
+  joinLobby: async (lobbyId) => {
+    const s = get();
+    if (s.mode !== 'live') return;
+    try {
+      const res = await joinPvpLobbyRPC(lobbyId);
+      await refetchLive(set);
+      const opponent: RaidOpponent = {
+        id: lobbyId,
+        name: 'Opponent',
+        memeType: 'gigachad',
+        power: res.opponentPower,
       };
+      const rewards: Reward[] = [{ kind: 'xp', amount: res.won ? 150 : 50 }];
+      set((st) => ({
+        pvpLobby: null,
+        openLobbies: st.openLobbies.filter((l) => l.id !== lobbyId),
+        pvpRating: Math.max(0, res.newRating),
+        quests: res.won ? bumpQuests(st.quests, 'raid_win') : st.quests,
+        battle: {
+          opponent,
+          userPower: res.youPower,
+          won: res.won,
+          winChance: res.winChance,
+          ratingDelta: res.ratingDelta,
+          newRating: res.newRating,
+          rewards,
+          stake: res.stake,
+          pot: res.pot,
+          fee: res.feeAmount,
+          payout: res.winnerPayout,
+        },
+      }));
+    } catch (err) {
+      console.warn('[store] join_pvp_lobby failed:', err);
+    }
+  },
 
-      return {
-        ...grantRewards(s, rewards),
-        raidTickets: s.raidTickets - 1,
-        pvpRating: newRating,
-        quests: won ? bumpQuests(s.quests, 'raid_win') : s.quests,
-        battle,
-      };
-    }),
+  cancelLobby: async () => {
+    const s = get();
+    const lobby = s.pvpLobby;
+    if (!lobby) return;
+    if (s.mode === 'live') {
+      try {
+        await cancelPvpLobbyRPC(lobby.id);
+        await refetchLive(set);
+      } catch (err) {
+        console.warn('[store] cancel_pvp_lobby failed:', err);
+      }
+    }
+    set({ pvpLobby: null });
+  },
+
+  refreshLobbies: async () => {
+    if (get().mode !== 'live') return;
+    try {
+      set({ openLobbies: await fetchOpenLobbies() });
+    } catch (err) {
+      console.warn('[store] fetchOpenLobbies failed:', err);
+    }
+  },
 
   dismissBattle: () => set({ battle: null }),
 
@@ -956,7 +1038,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 // --- rewards -----------------------------------------------------------
 
 function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
-  let { xp, balanceGram, raidTickets, dailyBuffUntil, dailyBuffPct, tiers } = st;
+  let { xp, balanceGram, dailyBuffUntil, dailyBuffPct, tiers } = st;
 
   for (const r of rewards) {
     switch (r.kind) {
@@ -965,9 +1047,6 @@ function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
         break;
       case 'gram':
         balanceGram = round4(balanceGram + r.amount);
-        break;
-      case 'tickets':
-        raidTickets = Math.min(MAX_RAID_TICKETS, raidTickets + r.amount);
         break;
       case 'buff':
         dailyBuffUntil = Date.now() + DAILY_BUFF_MS;
@@ -996,12 +1075,77 @@ function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
   return {
     xp,
     balanceGram,
-    raidTickets,
     dailyBuffUntil,
     dailyBuffPct,
     tiers,
     incomePerDay,
     farm: { ...st.farm, totalIncomePerDay: incomePerDay },
+  };
+}
+
+// --- wager duel (mock) -----------------------------------------------------
+
+/** Resolve a stake duel locally: debit the stake, credit the payout on a win. */
+function applyWager(st: GameStore, opponent: RaidOpponent): Partial<GameStore> {
+  const stake = st.pvpStake;
+  const pot = pvpPot(stake);
+  const fee = pvpFee(stake);
+  const payout = pvpPayout(stake);
+
+  const userPower = Math.round(
+    flattenCharacters(st.tiers).reduce((sum, c) => sum + c.power, 0),
+  );
+  const winChance = userPower / (userPower + opponent.power || 1);
+  const won = Math.random() < winChance;
+  const delta = pvpRatingDelta(won, winChance);
+  const newRating = Math.max(0, st.pvpRating + delta);
+
+  const t = Date.now();
+  const txs: Transaction[] = [
+    {
+      id: `tx-${t}-s`,
+      type: 'WAGER_STAKE',
+      amount: stake,
+      status: 'COMPLETED',
+      timestamp: t,
+      txHash: mockHash(),
+    },
+  ];
+  let balanceGram = round4(st.balanceGram - stake);
+  if (won) {
+    balanceGram = round4(balanceGram + payout);
+    txs.unshift({
+      id: `tx-${t}-p`,
+      type: 'WAGER_PAYOUT',
+      amount: payout,
+      status: 'COMPLETED',
+      timestamp: t,
+      txHash: mockHash(),
+    });
+  }
+
+  const rewards: Reward[] = [{ kind: 'xp', amount: won ? 150 : 50 }];
+  const battle: BattleResult = {
+    opponent,
+    userPower,
+    won,
+    winChance,
+    ratingDelta: delta,
+    newRating,
+    rewards,
+    stake,
+    pot,
+    fee,
+    payout,
+  };
+
+  return {
+    xp: st.xp + rewards[0].amount,
+    balanceGram,
+    pvpRating: newRating,
+    transactions: [...txs, ...st.transactions],
+    quests: won ? bumpQuests(st.quests, 'raid_win') : st.quests,
+    battle,
   };
 }
 

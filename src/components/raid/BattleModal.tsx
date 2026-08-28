@@ -16,7 +16,6 @@ type TFn = (key: string, vars?: Record<string, string | number>) => string;
 function rewardText(r: Reward, t: TFn): string {
   if (r.kind === 'xp') return t('battle.xpTop10', { n: r.amount });
   if (r.kind === 'gram') return `+${r.amount} GRAM`;
-  if (r.kind === 'tickets') return `+${r.amount} ⚡`;
   return `+${r.amount}`;
 }
 
@@ -117,6 +116,24 @@ export function BattleModal() {
                       total: battle.newRating,
                     })}
                   </span>
+                </div>
+
+                {/* pot breakdown */}
+                <div className="mx-auto mt-3 w-full max-w-[240px] space-y-1 rounded-2xl border-2 border-black bg-farm-card/70 p-3 text-[11px] font-bold">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/45">{t('battle.pot')}</span>
+                    <span className="dir-ltr text-white/80">{battle.pot.toFixed(2)} GRAM</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/45">{t('battle.commission')}</span>
+                    <span className="dir-ltr text-neon-pink">−{battle.fee.toFixed(2)} GRAM</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t-2 border-white/10 pt-1">
+                    <span className="text-white/45">{t('battle.netWin')}</span>
+                    <span className="dir-ltr text-neon-lime">
+                      {battle.won ? `+${battle.payout.toFixed(2)}` : `−${battle.stake.toFixed(2)}`} GRAM
+                    </span>
+                  </div>
                 </div>
 
                 <ul className="mt-3 space-y-1 text-sm font-bold text-neon-lime">

@@ -4,9 +4,9 @@ import type { Quest, StreakDay } from '../types/quests';
 export const STREAK_DAYS: StreakDay[] = [
   { day: 1, rewards: [{ kind: 'xp', amount: 150 }] },
   { day: 2, rewards: [{ kind: 'gram', amount: 0.05 }] },
-  { day: 3, rewards: [{ kind: 'tickets', amount: 2 }] },
+  { day: 3, rewards: [{ kind: 'xp', amount: 220 }] },
   { day: 4, rewards: [{ kind: 'xp', amount: 300 }] },
-  { day: 5, rewards: [{ kind: 'tickets', amount: 1 }] },
+  { day: 5, rewards: [{ kind: 'gram', amount: 0.03 }] },
   { day: 6, rewards: [{ kind: 'gram', amount: 0.12 }] },
   {
     day: 7,

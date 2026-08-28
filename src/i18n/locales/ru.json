@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Задания", "farm": "Ферма", "raid": "Рейд", "invite": "Друзья", "wallet": "Кошелёк" },
+  "nav": {
+    "quests": "Задания",
+    "farm": "Ферма",
+    "raid": "Рейд",
+    "invite": "Друзья",
+    "wallet": "Кошелёк"
+  },
   "tabTitle": {
     "quests": "Ежедневные задания",
     "farm": "Твоя мем-ферма",
@@ -85,7 +91,10 @@
     "winChanceWas": "Шанс победы был {n}%",
     "ratingLine": "{delta} рейтинга · {total}",
     "xpTop10": "⭐ +{n} XP — очки Топ-10",
-    "rematch": "Реванш"
+    "rematch": "Реванш",
+    "pot": "Банк",
+    "commission": "Комиссия (10%)",
+    "netWin": "Чистый выигрыш"
   },
   "raid": {
     "farmPower": "Сила фермы",
@@ -98,7 +107,17 @@
     "power": "Сила {n}",
     "chance": "шанс",
     "findAnother": "Найти другого",
-    "attack": "Атаковать · ⚡1"
+    "attack": "Атаковать · ⚡1",
+    "balance": "Баланс",
+    "stake": "Ставка",
+    "winPreview": "выигрыш {n}",
+    "pot": "Банк",
+    "fightForStake": "Ставка {n} — В бой",
+    "insufficientForStake": "Недостаточно GRAM для ставки",
+    "waiting": "Ожидание соперника · {n} GRAM",
+    "cancel": "Отменить",
+    "openLobbies": "Открытые столы",
+    "join": "Присоединиться"
   },
   "quests": {
     "streakTitle": "Ежедневный стрик",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Реферал",
     "STREAK_REWARD": "Стрик",
     "QUEST_REWARD": "Задание",
-    "REFUND": "Возврат"
+    "REFUND": "Возврат",
+    "WAGER_STAKE": "Ставка PvP",
+    "WAGER_PAYOUT": "Выигрыш PvP"
   },
   "deposit": {
     "title": "Депозит GRAM",

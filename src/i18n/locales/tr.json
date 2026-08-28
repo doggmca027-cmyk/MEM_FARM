@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Görevler", "farm": "Çiftlik", "raid": "Akın", "invite": "Arkadaşlar", "wallet": "Cüzdan" },
+  "nav": {
+    "quests": "Görevler",
+    "farm": "Çiftlik",
+    "raid": "Akın",
+    "invite": "Arkadaşlar",
+    "wallet": "Cüzdan"
+  },
   "tabTitle": {
     "quests": "Günlük Görevler",
     "farm": "Meme Çiftliğin",
@@ -85,7 +91,10 @@
     "winChanceWas": "Kazanma şansı %{n} idi",
     "ratingLine": "{delta} puan · {total}",
     "xpTop10": "⭐ +{n} XP — Top-10 puanı",
-    "rematch": "Rövanş"
+    "rematch": "Rövanş",
+    "pot": "Kasa",
+    "commission": "Komisyon (%10)",
+    "netWin": "Net kazanç"
   },
   "raid": {
     "farmPower": "Çiftlik Gücü",
@@ -98,7 +107,17 @@
     "power": "Güç {n}",
     "chance": "şans",
     "findAnother": "Başkasını bul",
-    "attack": "Saldır · ⚡1"
+    "attack": "Saldır · ⚡1",
+    "balance": "Bakiye",
+    "stake": "Bahis",
+    "winPreview": "kazanç {n}",
+    "pot": "Kasa",
+    "fightForStake": "Bahis {n} — Savaş",
+    "insufficientForStake": "Bu bahis için yeterli GRAM yok",
+    "waiting": "Rakip bekleniyor · {n} GRAM",
+    "cancel": "İptal",
+    "openLobbies": "Açık lobiler",
+    "join": "Katıl"
   },
   "quests": {
     "streakTitle": "Günlük seri",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Referans",
     "STREAK_REWARD": "Seri",
     "QUEST_REWARD": "Görev",
-    "REFUND": "İade"
+    "REFUND": "İade",
+    "WAGER_STAKE": "PvP bahsi",
+    "WAGER_PAYOUT": "PvP ödemesi"
   },
   "deposit": {
     "title": "GRAM Yatır",

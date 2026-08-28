@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Misi", "farm": "Farm", "raid": "Raid", "invite": "Teman", "wallet": "Dompet" },
+  "nav": {
+    "quests": "Misi",
+    "farm": "Farm",
+    "raid": "Raid",
+    "invite": "Teman",
+    "wallet": "Dompet"
+  },
   "tabTitle": {
     "quests": "Misi Harian",
     "farm": "Meme Farm Kamu",
@@ -85,7 +91,10 @@
     "winChanceWas": "Peluang menang {n}%",
     "ratingLine": "{delta} rating · {total}",
     "xpTop10": "⭐ +{n} XP — poin Top-10",
-    "rematch": "Tanding ulang"
+    "rematch": "Tanding ulang",
+    "pot": "Pot",
+    "commission": "Komisi (10%)",
+    "netWin": "Menang bersih"
   },
   "raid": {
     "farmPower": "Farm Power",
@@ -98,7 +107,17 @@
     "power": "Power {n}",
     "chance": "peluang",
     "findAnother": "Cari lawan lain",
-    "attack": "Serang · ⚡1"
+    "attack": "Serang · ⚡1",
+    "balance": "Saldo",
+    "stake": "Taruhan",
+    "winPreview": "menang {n}",
+    "pot": "Pot",
+    "fightForStake": "Taruhan {n} — Bertarung",
+    "insufficientForStake": "GRAM tidak cukup untuk taruhan ini",
+    "waiting": "Menunggu lawan · {n} GRAM",
+    "cancel": "Batal",
+    "openLobbies": "Lobi terbuka",
+    "join": "Gabung"
   },
   "quests": {
     "streakTitle": "Streak harian",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Referral",
     "STREAK_REWARD": "Streak",
     "QUEST_REWARD": "Misi",
-    "REFUND": "Pengembalian"
+    "REFUND": "Pengembalian",
+    "WAGER_STAKE": "Taruhan PvP",
+    "WAGER_PAYOUT": "Kemenangan PvP"
   },
   "deposit": {
     "title": "Setor GRAM",

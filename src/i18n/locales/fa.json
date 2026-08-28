@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "مأموریت‌ها", "farm": "مزرعه", "raid": "یورش", "invite": "دوستان", "wallet": "کیف‌پول" },
+  "nav": {
+    "quests": "مأموریت‌ها",
+    "farm": "مزرعه",
+    "raid": "یورش",
+    "invite": "دوستان",
+    "wallet": "کیف‌پول"
+  },
   "tabTitle": {
     "quests": "مأموریت‌های روزانه",
     "farm": "مزرعهٔ میم شما",
@@ -85,7 +91,10 @@
     "winChanceWas": "شانس برد {n}% بود",
     "ratingLine": "{delta} امتیاز · {total}",
     "xpTop10": "⭐ +{n} XP — امتیاز ۱۰ برتر",
-    "rematch": "بازی مجدد"
+    "rematch": "بازی مجدد",
+    "pot": "صندوق",
+    "commission": "کارمزد (۱۰٪)",
+    "netWin": "برد خالص"
   },
   "raid": {
     "farmPower": "قدرت مزرعه",
@@ -98,7 +107,17 @@
     "power": "قدرت {n}",
     "chance": "شانس",
     "findAnother": "یافتن حریف دیگر",
-    "attack": "حمله · ⚡1"
+    "attack": "حمله · ⚡1",
+    "balance": "موجودی",
+    "stake": "شرط",
+    "winPreview": "برد {n}",
+    "pot": "صندوق",
+    "fightForStake": "شرط {n} — نبرد",
+    "insufficientForStake": "GRAM کافی برای این شرط نیست",
+    "waiting": "در انتظار حریف · {n} GRAM",
+    "cancel": "لغو",
+    "openLobbies": "میزهای باز",
+    "join": "پیوستن"
   },
   "quests": {
     "streakTitle": "زنجیرهٔ روزانه",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "معرفی",
     "STREAK_REWARD": "زنجیره",
     "QUEST_REWARD": "مأموریت",
-    "REFUND": "بازگشت وجه"
+    "REFUND": "بازگشت وجه",
+    "WAGER_STAKE": "شرط PvP",
+    "WAGER_PAYOUT": "پرداخت PvP"
   },
   "deposit": {
     "title": "واریز GRAM",

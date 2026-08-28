@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Quests", "farm": "Farm", "raid": "Raid", "invite": "Frens", "wallet": "Wallet" },
+  "nav": {
+    "quests": "Quests",
+    "farm": "Farm",
+    "raid": "Raid",
+    "invite": "Frens",
+    "wallet": "Wallet"
+  },
   "tabTitle": {
     "quests": "Daily Quests",
     "farm": "Your Meme Farm",
@@ -85,7 +91,10 @@
     "winChanceWas": "Win chance was {n}%",
     "ratingLine": "{delta} rating · {total}",
     "xpTop10": "⭐ +{n} XP — Top-10 points",
-    "rematch": "Rematch"
+    "rematch": "Rematch",
+    "pot": "Pot",
+    "commission": "Commission (10%)",
+    "netWin": "Net win"
   },
   "raid": {
     "farmPower": "Farm Power",
@@ -98,7 +107,17 @@
     "power": "Power {n}",
     "chance": "chance",
     "findAnother": "Find another",
-    "attack": "Attack · ⚡1"
+    "attack": "Attack · ⚡1",
+    "balance": "Balance",
+    "stake": "Stake",
+    "winPreview": "win {n}",
+    "pot": "Pot",
+    "fightForStake": "Stake {n} — Fight",
+    "insufficientForStake": "Not enough GRAM for this stake",
+    "waiting": "Waiting for an opponent · {n} GRAM",
+    "cancel": "Cancel",
+    "openLobbies": "Open lobbies",
+    "join": "Join"
   },
   "quests": {
     "streakTitle": "Daily streak",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Referral",
     "STREAK_REWARD": "Streak",
     "QUEST_REWARD": "Quest",
-    "REFUND": "Refund"
+    "REFUND": "Refund",
+    "WAGER_STAKE": "PvP stake",
+    "WAGER_PAYOUT": "PvP payout"
   },
   "deposit": {
     "title": "Deposit GRAM",

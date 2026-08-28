@@ -1,7 +1,7 @@
 import type { MemeType } from './game';
 
 export type QuestId = 'farm_claim' | 'tier_roll' | 'raid_win' | 'study_upgrade';
-export type RewardKind = 'xp' | 'gram' | 'tickets' | 'case' | 'buff';
+export type RewardKind = 'xp' | 'gram' | 'case' | 'buff';
 
 export interface Reward {
   kind: RewardKind;
@@ -39,4 +39,12 @@ export interface BattleResult {
   ratingDelta: number;
   newRating: number;
   rewards: Reward[];
+  /** GRAM staked by each side. */
+  stake: number;
+  /** stake * 2 — the whole pot. */
+  pot: number;
+  /** 10% of the pot skimmed to the project treasury. */
+  fee: number;
+  /** pot - fee — credited to the winner's balance (0 to you on a loss). */
+  payout: number;
 }

@@ -539,6 +539,91 @@ export async function mergeCharactersRPC(
   };
 }
 
+// --- PvP wager arena ---------------------------------------------------------
+
+export interface LobbyRow {
+  id: string;
+  stake: number;
+  createdAt: string;
+}
+
+export interface JoinLobbyResult {
+  won: boolean;
+  stake: number;
+  pot: number;
+  feeAmount: number;
+  winnerPayout: number;
+  youPower: number;
+  opponentPower: number;
+  winChance: number;
+  ratingDelta: number;
+  newRating: number;
+  xpTotal: number;
+  newAvailableGram: number;
+}
+
+/** Open lobbies from other players you can join. */
+export async function fetchOpenLobbies(): Promise<LobbyRow[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client()
+    .from('pvp_lobbies')
+    .select('id, stake, created_at')
+    .eq('status', 'OPEN')
+    .neq('creator_id', uid)
+    .order('created_at', { ascending: true })
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    stake: num(r.stake),
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function createPvpLobbyRPC(stake: number): Promise<{ id: string; stake: number }> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('create_pvp_lobby', {
+    p_user_id: uid,
+    p_stake: stake,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return { id: String(row?.lobby_id ?? row?.id), stake: num(row?.stake) || stake };
+}
+
+export async function cancelPvpLobbyRPC(lobbyId: string): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client().rpc('cancel_pvp_lobby', {
+    p_user_id: uid,
+    p_lobby_id: lobbyId,
+  });
+  if (error) throw error;
+}
+
+export async function joinPvpLobbyRPC(lobbyId: string): Promise<JoinLobbyResult> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('join_pvp_lobby', {
+    p_user_id: uid,
+    p_lobby_id: lobbyId,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    won: Boolean(row?.you_won),
+    stake: num(row?.stake),
+    pot: num(row?.pot),
+    feeAmount: num(row?.fee_amount),
+    winnerPayout: num(row?.winner_payout),
+    youPower: Number(row?.joiner_power) || 0,
+    opponentPower: Number(row?.creator_power) || 0,
+    winChance: num(row?.win_chance),
+    ratingDelta: Number(row?.rating_delta) || 0,
+    newRating: Number(row?.new_rating) || 0,
+    xpTotal: Number(row?.xp_total) || 0,
+    newAvailableGram: num(row?.new_available_gram),
+  };
+}
+
 export async function fetchTransactions(limit = 50): Promise<Transaction[]> {
   const uid = await requireUserId();
   const { data, error } = await client()

@@ -23,8 +23,6 @@ function rewardChip(r: Reward): { icon: ReactNode; text: string } {
       return { icon: <Sparkles className="h-3 w-3" strokeWidth={3} />, text: `${r.amount} XP` };
     case 'gram':
       return { icon: <GramIcon className="h-3 w-3" />, text: fmtGram(r.amount, 3) };
-    case 'tickets':
-      return { icon: <span className="text-[10px]">⚡</span>, text: `×${r.amount}` };
     case 'case':
       return { icon: <Gift className="h-3 w-3" strokeWidth={3} />, text: '📦' };
     case 'buff':

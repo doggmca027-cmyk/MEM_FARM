@@ -33,12 +33,10 @@ export function BottomNav() {
   const activeTab = useGameStore((s) => s.activeTab);
   const setActiveTab = useGameStore((s) => s.setActiveTab);
   const questBadge = useGameStore(selectQuestBadge);
-  const raidTickets = useGameStore((s) => s.raidTickets);
   const invites = useGameStore((s) => s.invites);
 
   const badgeFor = (id: NavTab): string | number | null => {
     if (id === 'quests') return questBadge > 0 ? questBadge : null;
-    if (id === 'raid') return raidTickets > 0 ? `⚡${raidTickets}` : null;
     if (id === 'invite') return invites > 0 ? invites : null;
     return null;
   };

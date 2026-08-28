@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Тапсырмалар", "farm": "Ферма", "raid": "Рейд", "invite": "Достар", "wallet": "Әмиян" },
+  "nav": {
+    "quests": "Тапсырмалар",
+    "farm": "Ферма",
+    "raid": "Рейд",
+    "invite": "Достар",
+    "wallet": "Әмиян"
+  },
   "tabTitle": {
     "quests": "Күнделікті тапсырмалар",
     "farm": "Сенің мем-фермаң",
@@ -85,7 +91,10 @@
     "winChanceWas": "Жеңіс мүмкіндігі {n}% еді",
     "ratingLine": "{delta} рейтинг · {total}",
     "xpTop10": "⭐ +{n} XP — Топ-10 ұпайы",
-    "rematch": "Реванш"
+    "rematch": "Реванш",
+    "pot": "Банк",
+    "commission": "Комиссия (10%)",
+    "netWin": "Таза ұтыс"
   },
   "raid": {
     "farmPower": "Ферма күші",
@@ -98,7 +107,17 @@
     "power": "Күш {n}",
     "chance": "мүмкіндік",
     "findAnother": "Басқасын табу",
-    "attack": "Шабуыл · ⚡1"
+    "attack": "Шабуыл · ⚡1",
+    "balance": "Баланс",
+    "stake": "Мөлшерлеме",
+    "winPreview": "ұтыс {n}",
+    "pot": "Банк",
+    "fightForStake": "Мөлшерлеме {n} — Ұрысқа",
+    "insufficientForStake": "Мөлшерлемеге GRAM жеткіліксіз",
+    "waiting": "Қарсыласты күту · {n} GRAM",
+    "cancel": "Бас тарту",
+    "openLobbies": "Ашық үстелдер",
+    "join": "Қосылу"
   },
   "quests": {
     "streakTitle": "Күнделікті стрик",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Реферал",
     "STREAK_REWARD": "Стрик",
     "QUEST_REWARD": "Тапсырма",
-    "REFUND": "Қайтару"
+    "REFUND": "Қайтару",
+    "WAGER_STAKE": "PvP мөлшерлемесі",
+    "WAGER_PAYOUT": "PvP ұтысы"
   },
   "deposit": {
     "title": "GRAM депозиті",

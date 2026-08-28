@@ -1,5 +1,11 @@
 {
-  "nav": { "quests": "Misiones", "farm": "Granja", "raid": "Asalto", "invite": "Amigos", "wallet": "Cartera" },
+  "nav": {
+    "quests": "Misiones",
+    "farm": "Granja",
+    "raid": "Asalto",
+    "invite": "Amigos",
+    "wallet": "Cartera"
+  },
   "tabTitle": {
     "quests": "Misiones diarias",
     "farm": "Tu Meme Farm",
@@ -85,7 +91,10 @@
     "winChanceWas": "La probabilidad de ganar era {n}%",
     "ratingLine": "{delta} de rating · {total}",
     "xpTop10": "⭐ +{n} XP — puntos Top-10",
-    "rematch": "Revancha"
+    "rematch": "Revancha",
+    "pot": "Bote",
+    "commission": "Comisión (10%)",
+    "netWin": "Ganancia neta"
   },
   "raid": {
     "farmPower": "Poder de granja",
@@ -98,7 +107,17 @@
     "power": "Poder {n}",
     "chance": "probabilidad",
     "findAnother": "Buscar otro",
-    "attack": "Atacar · ⚡1"
+    "attack": "Atacar · ⚡1",
+    "balance": "Saldo",
+    "stake": "Apuesta",
+    "winPreview": "ganas {n}",
+    "pot": "Bote",
+    "fightForStake": "Apuesta {n} — Luchar",
+    "insufficientForStake": "No hay suficiente GRAM para esta apuesta",
+    "waiting": "Esperando rival · {n} GRAM",
+    "cancel": "Cancelar",
+    "openLobbies": "Salas abiertas",
+    "join": "Unirse"
   },
   "quests": {
     "streakTitle": "Racha diaria",
@@ -153,7 +172,9 @@
     "REFERRAL_REWARD": "Referido",
     "STREAK_REWARD": "Racha",
     "QUEST_REWARD": "Misión",
-    "REFUND": "Reembolso"
+    "REFUND": "Reembolso",
+    "WAGER_STAKE": "Apuesta PvP",
+    "WAGER_PAYOUT": "Pago PvP"
   },
   "deposit": {
     "title": "Depositar GRAM",

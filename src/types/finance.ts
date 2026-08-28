@@ -8,7 +8,10 @@ export type TransactionType =
   | 'TIER_ROLL'
   | 'REFERRAL_REWARD'
   | 'STREAK_REWARD'
-  | 'QUEST_REWARD';
+  | 'QUEST_REWARD'
+  | 'WAGER_STAKE'
+  | 'WAGER_PAYOUT'
+  | 'REFUND';
 
 export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
@@ -37,4 +40,6 @@ export const CREDIT_TYPES: ReadonlySet<TransactionType> = new Set([
   'REFERRAL_REWARD',
   'STREAK_REWARD',
   'QUEST_REWARD',
+  'WAGER_PAYOUT',
+  'REFUND',
 ]);
