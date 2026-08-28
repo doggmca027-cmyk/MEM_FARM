@@ -593,6 +593,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         const t = Date.now();
         set((st) => ({
           balanceGram: res.newAvailableGram,
+          lockedGram: round4(st.lockedGram + amount),
           lastWithdrawAt: t,
           transactions: [
             { id: res.txId || `tx-${t}`, type: 'WITHDRAW', amount, fee: res.fee, netAmount: res.netAmount, address, status: 'PENDING', timestamp: t, txHash: null },
@@ -619,6 +620,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     };
     set((st) => ({
       balanceGram: round4(st.balanceGram - amount),
+      lockedGram: round4(st.lockedGram + amount),
       lastWithdrawAt: t,
       transactions: [tx, ...st.transactions],
     }));

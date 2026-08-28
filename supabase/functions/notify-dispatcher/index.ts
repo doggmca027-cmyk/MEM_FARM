@@ -36,12 +36,13 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-type NotifType = 'FARM_READY' | 'PVP_ATTACK' | 'REFERRAL_INCOME';
+type NotifType = 'FARM_READY' | 'PVP_ATTACK' | 'REFERRAL_INCOME' | 'DEPOSIT';
 
 const PREF_KEY: Record<NotifType, string> = {
   FARM_READY: 'farm_ready',
   PVP_ATTACK: 'pvp_attack',
   REFERRAL_INCOME: 'referral_income',
+  DEPOSIT: 'deposit',
 };
 
 function json(body: unknown, status = 200): Response {
@@ -68,6 +69,10 @@ type Lang = 'uk' | 'en' | 'ru' | 'kk' | 'id' | 'es' | 'tr' | 'ar' | 'fa';
 /** Per-language push templates. `{amount}` / `{level}` are interpolated. Missing langs fall back to `uk`. */
 const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }>> = {
   uk: {
+    DEPOSIT: {
+      text: '💎 *Депозит зараховано!*\n\nНа ваш баланс успішно зараховано +{amount} GRAM.',
+      button: '💎 Відкрити',
+    },
     FARM_READY: {
       text: '🌾 *Твоя ферма готова до збору!*\n\nНакопичено максимум GRAM. Заходь забрати свій прибуток!',
       button: '🌾 Забрати',
@@ -82,6 +87,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   en: {
+    DEPOSIT: {
+      text: '💎 *Deposit credited!*\n\n+{amount} GRAM has been added to your balance.',
+      button: '💎 Open',
+    },
     FARM_READY: {
       text: '🌾 *Your farm is ready to harvest!*\n\nGRAM has maxed out. Come claim your income!',
       button: '🌾 Claim',
@@ -96,6 +105,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   ru: {
+    DEPOSIT: {
+      text: '💎 *Депозит зачислен!*\n\nНа ваш баланс зачислено +{amount} GRAM.',
+      button: '💎 Открыть',
+    },
     FARM_READY: {
       text: '🌾 *Твоя ферма готова к сбору!*\n\nНакопился максимум GRAM. Заходи забрать доход!',
       button: '🌾 Забрать',
@@ -110,6 +123,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   kk: {
+    DEPOSIT: {
+      text: '💎 *Депозит есептелді!*\n\nБалансыңызға +{amount} GRAM қосылды.',
+      button: '💎 Ашу',
+    },
     FARM_READY: {
       text: '🌾 *Фермаң жинауға дайын!*\n\nGRAM максимумға жетті. Кіріп табысыңды ал!',
       button: '🌾 Жинау',
@@ -124,6 +141,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   id: {
+    DEPOSIT: {
+      text: '💎 *Deposit masuk!*\n\n+{amount} GRAM telah ditambahkan ke saldo Anda.',
+      button: '💎 Buka',
+    },
     FARM_READY: {
       text: '🌾 *Farm kamu siap dipanen!*\n\nGRAM sudah maksimal. Ambil pendapatanmu!',
       button: '🌾 Ambil',
@@ -138,6 +159,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   es: {
+    DEPOSIT: {
+      text: '💎 *¡Depósito acreditado!*\n\nSe han añadido +{amount} GRAM a tu saldo.',
+      button: '💎 Abrir',
+    },
     FARM_READY: {
       text: '🌾 *¡Tu granja está lista para cosechar!*\n\nEl GRAM llegó al máximo. ¡Ven a reclamar tus ingresos!',
       button: '🌾 Reclamar',
@@ -152,6 +177,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   tr: {
+    DEPOSIT: {
+      text: '💎 *Depozito yatırıldı!*\n\nBakiyene +{amount} GRAM eklendi.',
+      button: '💎 Aç',
+    },
     FARM_READY: {
       text: '🌾 *Çiftliğin hasada hazır!*\n\nGRAM maksimuma ulaştı. Gel gelirini al!',
       button: '🌾 Al',
@@ -166,6 +195,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   ar: {
+    DEPOSIT: {
+      text: '💎 *تم إضافة الإيداع!*\n\nتمت إضافة +{amount} GRAM إلى رصيدك.',
+      button: '💎 فتح',
+    },
     FARM_READY: {
       text: '🌾 *مزرعتك جاهزة للحصاد!*\n\nبلغ GRAM حدّه الأقصى. تعال واستلم دخلك!',
       button: '🌾 استلام',
@@ -180,6 +213,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     },
   },
   fa: {
+    DEPOSIT: {
+      text: '💎 *واریز ثبت شد!*\n\n+{amount} GRAM به موجودی شما اضافه شد.',
+      button: '💎 باز کردن',
+    },
     FARM_READY: {
       text: '🌾 *مزرعه‌ات آمادهٔ برداشت است!*\n\nGRAM به سقف رسید. بیا و درآمدت را بگیر!',
       button: '🌾 دریافت',
