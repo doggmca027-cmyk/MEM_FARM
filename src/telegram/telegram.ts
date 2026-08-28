@@ -41,6 +41,31 @@ export function getReferrerCode(): string | null {
   return referrerCode;
 }
 
+export interface TelegramUser {
+  photoUrl: string | null;
+  firstName: string | null;
+  username: string | null;
+}
+
+/** The launching Telegram user's public fields (photo / name), all nullable. */
+export function readTelegramUser(): TelegramUser {
+  try {
+    const wa = WebApp as unknown as {
+      initDataUnsafe?: {
+        user?: { photo_url?: string; first_name?: string; username?: string };
+      };
+    };
+    const u = wa.initDataUnsafe?.user;
+    return {
+      photoUrl: u?.photo_url ?? null,
+      firstName: u?.first_name ?? null,
+      username: u?.username ?? null,
+    };
+  } catch {
+    return { photoUrl: null, firstName: null, username: null };
+  }
+}
+
 /**
  * Open the Telegram share sheet for an invite link. Uses the native
  * `openTelegramLink` inside Telegram, a new tab otherwise.

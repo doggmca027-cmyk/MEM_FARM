@@ -1,11 +1,42 @@
+import { useState } from 'react';
 import { TonConnectButton } from '@tonconnect/ui-react';
-import { Crown, Settings, Star } from 'lucide-react';
+import { Crown, Settings, Star, User } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { fmtGram, formatNum } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
 import { GramIcon } from '../icons/Icons';
 import { Chip } from '../ui/Chip';
 import { useT } from '../../i18n/useT';
+
+/** Telegram avatar with the level badge overlaid; falls back to an initial. */
+function AvatarBadge({ level }: { level: number }) {
+  const photoUrl = useGameStore((s) => s.photoUrl);
+  const displayName = useGameStore((s) => s.displayName);
+  const [errored, setErrored] = useState(false);
+  const initial = displayName.trim().charAt(0).toUpperCase();
+  const showImg = photoUrl && !errored;
+
+  return (
+    <div className="relative h-9 w-9 flex-none">
+      {showImg ? (
+        <img
+          src={photoUrl}
+          alt="Avatar"
+          crossOrigin="anonymous"
+          onError={() => setErrored(true)}
+          className="h-8 w-8 rounded-full border border-purple-500/40 object-cover shadow-sm"
+        />
+      ) : (
+        <div className="grid h-8 w-8 place-items-center rounded-full border border-purple-500/40 bg-neon-violet/80 text-xs font-display text-stroke-sm shadow-sm">
+          {initial || <User className="h-4 w-4" strokeWidth={2.75} />}
+        </div>
+      )}
+      <span className="absolute -bottom-1 -right-1 grid h-4 min-w-[16px] place-items-center rounded-md border border-black bg-neon-violet px-0.5 text-[9px] font-display leading-none text-stroke-sm">
+        {level}
+      </span>
+    </div>
+  );
+}
 
 export function TopBar({ level = 7 }: { level?: number }) {
   const t = useT();
@@ -21,9 +52,7 @@ export function TopBar({ level = 7 }: { level?: number }) {
     <header className="safe-t sticky top-0 z-30 bg-farm-deep/85 px-4 pb-3 backdrop-blur-md">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-xl border-2 border-black border-b-4 border-b-black/40 bg-neon-violet font-display text-sm text-stroke-sm">
-            {level}
-          </div>
+          <AvatarBadge level={level} />
           <Chip icon={<GramIcon className="h-4 w-4" />} className="bg-farm-card text-neon-cyan">
             <span className="dir-ltr">{fmtGram(balanceGram)}</span>
           </Chip>

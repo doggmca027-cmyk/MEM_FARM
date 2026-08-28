@@ -8,6 +8,7 @@ import type {
   WithdrawalRequest,
 } from '../types/admin';
 import { TIER_COST, TIER_IDS } from '../data/tiers';
+import { readTelegramUser } from '../telegram/telegram';
 import type { Transaction, TransactionStatus, TransactionType } from '../types/finance';
 
 // --- helpers ---------------------------------------------------------------
@@ -43,6 +44,8 @@ export interface ProfileData {
   telegramId: number | null;
   username: string | null;
   firstName: string | null;
+  /** Telegram avatar URL (from initDataUnsafe.user.photo_url), or null. */
+  photoUrl: string | null;
   walletAddress: string | null;
   referralCode: string | null;
   isAdmin: boolean;
@@ -187,11 +190,13 @@ export async function fetchUserProfile(): Promise<ProfileData> {
     .single();
 
   if (error) throw error;
+  const tg = readTelegramUser();
   return {
     id: data.id,
     telegramId: data.telegram_id ?? null,
-    username: data.username ?? null,
-    firstName: data.first_name ?? null,
+    username: data.username ?? tg.username,
+    firstName: data.first_name ?? tg.firstName,
+    photoUrl: tg.photoUrl,
     walletAddress: data.wallet_address ?? null,
     referralCode: data.referral_code ?? null,
     isAdmin: Boolean(data.is_admin),

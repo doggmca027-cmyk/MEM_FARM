@@ -14,6 +14,7 @@ import { round4 } from '../lib/format';
 import { applyDir, isLang, loadLang, saveLang, type LangCode } from '../i18n';
 import { isSameUtcDay, utcDaysBetween } from '../lib/time';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { readTelegramUser } from '../telegram/telegram';
 import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
 import { DAILY_CHEST_REWARD, DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
 import {
@@ -246,6 +247,10 @@ interface GameStore {
   mode: DataMode;
   status: LoadStatus;
   profile: ProfileData | null;
+  /** Telegram avatar URL, or null (falls back to an initial-letter chip). */
+  photoUrl: string | null;
+  /** Display name for the avatar fallback (Telegram first_name / @username). */
+  displayName: string;
   activeTab: NavTab;
 
   balanceGram: number;
@@ -359,10 +364,14 @@ interface GameStore {
   adminSetBanned: (userId: string, banned: boolean) => Promise<boolean>;
 }
 
+const bootTgUser = readTelegramUser();
+
 export const useGameStore = create<GameStore>()((set, get) => ({
   mode: 'mock',
   status: 'idle',
   profile: null,
+  photoUrl: bootTgUser.photoUrl,
+  displayName: bootTgUser.firstName ?? bootTgUser.username ?? 'Player',
   activeTab: 'farm',
 
   balanceGram: 12.5,
@@ -463,6 +472,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         mode: 'live',
         status: 'ready',
         profile,
+        photoUrl: profile.photoUrl ?? st.photoUrl,
+        displayName: profile.firstName ?? profile.username ?? st.displayName,
         notifPrefs: profile.notifPrefs ?? st.notifPrefs,
         lang: isLang(serverLang) ? serverLang : st.lang,
         referralCode: profile.referralCode ?? st.referralCode,
