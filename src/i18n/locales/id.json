@@ -179,9 +179,11 @@
   "deposit": {
     "title": "Setor GRAM",
     "orAmount": "Atau masukkan jumlah",
-    "note": "Dana masuk ke treasury {addr} dengan komentar memefarm:deposit. Saldo diperbarui setelah konfirmasi jaringan.",
+    "note": "Dana masuk ke treasury {addr}. Cantumkan Telegram ID di komentar: {memo}. Saldo diperbarui setelah konfirmasi jaringan.",
     "topUp": "Isi {n} GRAM",
-    "opening": "Membuka dompet…"
+    "opening": "Membuka dompet…",
+    "needAuth": "Buka aplikasi di dalam Telegram untuk deposit",
+    "txRejected": "Transaksi ditolak"
   },
   "withdraw": {
     "title": "Tarik GRAM",

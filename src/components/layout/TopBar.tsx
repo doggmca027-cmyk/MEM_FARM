@@ -22,7 +22,7 @@ function AvatarBadge({ level }: { level: number }) {
         <img
           src={photoUrl}
           alt="Avatar"
-          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
           onError={() => setErrored(true)}
           className="h-8 w-8 rounded-full border border-purple-500/40 object-cover shadow-sm"
         />
@@ -41,7 +41,6 @@ function AvatarBadge({ level }: { level: number }) {
 export function TopBar({ level = 7 }: { level?: number }) {
   const t = useT();
   const balanceGram = useGameStore((s) => s.balanceGram);
-  const incomePerDay = useGameStore((s) => s.incomePerDay);
   const xp = useGameStore((s) => s.xp);
   const activeTab = useGameStore((s) => s.activeTab);
   const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
@@ -50,21 +49,20 @@ export function TopBar({ level = 7 }: { level?: number }) {
 
   return (
     <header className="safe-t sticky top-0 z-30 bg-farm-deep/85 px-4 pb-3 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <AvatarBadge level={level} />
-          <Chip icon={<GramIcon className="h-4 w-4" />} className="bg-farm-card text-neon-cyan">
-            <span className="dir-ltr">{fmtGram(balanceGram)}</span>
-          </Chip>
-          <Chip
-            icon={<Star className="h-3.5 w-3.5 fill-neon-yellow" strokeWidth={2.5} />}
-            className="bg-farm-card text-neon-yellow"
-          >
-            <span className="dir-ltr">{formatNum(xp)} XP</span>
-          </Chip>
-        </div>
+      {/* row 1 — identity + stats + controls */}
+      <div className="flex items-center gap-2">
+        <AvatarBadge level={level} />
+        <Chip icon={<GramIcon className="h-4 w-4" />} className="min-w-0 bg-farm-card text-neon-cyan">
+          <span className="dir-ltr">{fmtGram(balanceGram)}</span>
+        </Chip>
+        <Chip
+          icon={<Star className="h-3.5 w-3.5 fill-neon-yellow" strokeWidth={2.5} />}
+          className="min-w-0 bg-farm-card text-neon-yellow"
+        >
+          <span className="dir-ltr">{formatNum(xp)} XP</span>
+        </Chip>
 
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex flex-none items-center gap-2">
           <button
             onClick={() => {
               haptic.select();
@@ -87,16 +85,18 @@ export function TopBar({ level = 7 }: { level?: number }) {
               <Crown className="h-4 w-4" strokeWidth={3} />
             </button>
           )}
-          <Chip className="bg-farm-card text-neon-lime">
-            <span className="dir-ltr">+{fmtGram(incomePerDay, 3)}/d</span>
-          </Chip>
-          <TonConnectButton />
         </div>
       </div>
 
-      <h1 className="mt-2 font-display text-xl leading-none text-stroke">
-        {t(`tabTitle.${activeTab}`)}
-      </h1>
+      {/* row 2 — screen title + wallet connect (its own line so it never clips) */}
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <h1 className="min-w-0 truncate font-display text-xl leading-none text-stroke">
+          {t(`tabTitle.${activeTab}`)}
+        </h1>
+        <div className="flex-none overflow-hidden [&>*]:!max-w-[52vw]">
+          <TonConnectButton />
+        </div>
+      </div>
     </header>
   );
 }

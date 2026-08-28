@@ -16,7 +16,7 @@ import { isSameUtcDay, utcDaysBetween } from '../lib/time';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { readTelegramUser } from '../telegram/telegram';
 import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
-import { DAILY_CHEST_REWARD, DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
+import { DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
 import {
   adminBanUser,
   adminGetSettings,
@@ -271,7 +271,6 @@ interface GameStore {
   questsResetAt: number;
   streakDay: number; // consecutive days claimed, 0..7
   lastCheckInAt: number | null;
-  dailyChestClaimed: boolean;
   dailyBuffUntil: number; // epoch ms, 0 = none
   dailyBuffPct: number;
 
@@ -326,7 +325,6 @@ interface GameStore {
   /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
   claimDailyCheckIn: () => void;
   claimQuestReward: (questId: QuestId) => void;
-  claimDailyChest: () => void;
 
   /** Pick the GRAM stake for the next duel. */
   setPvpStake: (stake: StakeTier) => void;
@@ -386,20 +384,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     claimableGram: 0,
   },
   tiers: SEED_TIERS,
-  transactions: [
-    { id: 'tx-seed-1', type: 'DEPOSIT', amount: 10, status: 'COMPLETED', timestamp: bootNow - 3 * DAY_MS, txHash: mockHash() },
-    { id: 'tx-seed-2', type: 'TIER_ROLL', amount: 2, status: 'COMPLETED', timestamp: bootNow - 2 * DAY_MS, txHash: mockHash() },
-    { id: 'tx-seed-3', type: 'FARM_CLAIM', amount: 0.18, status: 'COMPLETED', timestamp: bootNow - DAY_MS, txHash: mockHash() },
-    { id: 'tx-seed-4', type: 'FARM_CLAIM', amount: 0.09, status: 'COMPLETED', timestamp: bootNow - COOLDOWN_MS, txHash: mockHash() },
-    {
-      id: 'tx-seed-5',
-      type: 'DEPOSIT',
-      amount: 4,
-      status: 'PENDING',
-      timestamp: bootNow - 6 * 60 * 1000,
-      txHash: null,
-    },
-  ],
+  // zero onboarding — empty history / streak / referrals until real activity
+  transactions: [],
 
   reveal: null,
   battle: null,
@@ -407,33 +393,27 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
   questsResetAt: bootNow,
-  streakDay: 3,
-  lastCheckInAt: bootNow - 30 * 60 * 60 * 1000, // ~1.25 days ago → checkable
-  dailyChestClaimed: false,
+  streakDay: 0,
+  lastCheckInAt: null,
   dailyBuffUntil: 0,
   dailyBuffPct: 0,
 
-  pvpRating: 1180,
+  pvpRating: 0,
   pvpStake: 0.25,
   pvpLobby: null,
   openLobbies: [],
 
   referralCode: '7H4X9K',
   referralStats: {
-    l1Count: 4,
-    l2Count: 9,
-    l3Count: 21,
-    l1Earned: 1.24,
-    l2Earned: 0.38,
-    l3Earned: 0.11,
-    unclaimedGram: 0.42,
+    l1Count: 0,
+    l2Count: 0,
+    l3Count: 0,
+    l1Earned: 0,
+    l2Earned: 0,
+    l3Earned: 0,
+    unclaimedGram: 0,
   },
-  referralsList: [
-    { id: 'rf-1', handle: '@crypto_capy', memeType: 'capybara', tier: 1, joinedAt: bootNow - 6 * DAY_MS, broughtGram: 0.64 },
-    { id: 'rf-2', handle: '@pepe_whale', memeType: 'pepe', tier: 1, joinedAt: bootNow - 4 * DAY_MS, broughtGram: 0.41 },
-    { id: 'rf-3', handle: '@doge_to_moon', memeType: 'doge', tier: 2, joinedAt: bootNow - 2 * DAY_MS, broughtGram: 0.19 },
-    { id: 'rf-4', handle: '@gigabrain', memeType: 'gigachad', tier: 1, joinedAt: bootNow - 18 * 60 * 60 * 1000, broughtGram: 0.05 },
-  ],
+  referralsList: [],
 
   invites: 0,
   adminOpen: false,
@@ -521,7 +501,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       return {
         quests: DEFAULT_QUESTS.map((q) => ({ ...q })),
         questsResetAt: now,
-        dailyChestClaimed: false,
       };
     }),
 
@@ -858,13 +837,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         ...grantRewards(s, [q.reward]),
         quests: s.quests.map((x) => (x.id === questId ? { ...x, claimed: true } : x)),
       };
-    }),
-
-  claimDailyChest: () =>
-    set((s) => {
-      if (s.dailyChestClaimed) return s;
-      if (!s.quests.every((q) => q.claimed)) return s;
-      return { ...grantRewards(s, [{ ...DAILY_CHEST_REWARD }]), dailyChestClaimed: true };
     }),
 
   setPvpStake: (stake) => set({ pvpStake: stake }),
@@ -1304,11 +1276,10 @@ export const selectDailyProgress = (s: GameStore): { done: number; total: number
   claimable: s.quests.filter((q) => !q.claimed && q.progress >= q.goal).length,
 });
 
-/** Bottom-nav badge for the quests tab: check-in + ready rewards + full chest. */
+/** Bottom-nav badge for the quests tab: pending check-in + claimable rewards. */
 export const selectQuestBadge = (s: GameStore): number => {
   const p = selectDailyProgress(s);
-  const chest = !s.dailyChestClaimed && p.done === p.total && p.total > 0 ? 1 : 0;
-  return (selectCanCheckIn(s) ? 1 : 0) + p.claimable + chest;
+  return (selectCanCheckIn(s) ? 1 : 0) + p.claimable;
 };
 
 /** Referral roll-ups for the invite dashboard. */

@@ -179,9 +179,11 @@
   "deposit": {
     "title": "GRAM Yatır",
     "orAmount": "Ya da bir tutar gir",
-    "note": "Fonlar memefarm:deposit yorumuyla {addr} hazinesine gider. Bakiye ağ onayından sonra güncellenir.",
+    "note": "Fonlar {addr} hazinesine gider. Yoruma Telegram ID’ni yaz: {memo}. Bakiye ağ onayından sonra güncellenir.",
     "topUp": "{n} GRAM yükle",
-    "opening": "Cüzdan açılıyor…"
+    "opening": "Cüzdan açılıyor…",
+    "needAuth": "Yatırmak için uygulamayı Telegram içinde aç",
+    "txRejected": "İşlem reddedildi"
   },
   "withdraw": {
     "title": "GRAM Çek",

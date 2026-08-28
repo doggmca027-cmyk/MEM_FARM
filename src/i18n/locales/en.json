@@ -179,9 +179,11 @@
   "deposit": {
     "title": "Deposit GRAM",
     "orAmount": "Or enter an amount",
-    "note": "Funds go to the treasury {addr} with the comment memefarm:deposit. Balance updates after network confirmation.",
+    "note": "Funds go to the treasury {addr}. Put your Telegram ID in the comment: {memo}. Balance updates after network confirmation.",
     "topUp": "Top up {n} GRAM",
-    "opening": "Opening wallet…"
+    "opening": "Opening wallet…",
+    "needAuth": "Open the app inside Telegram to deposit",
+    "txRejected": "Transaction rejected"
   },
   "withdraw": {
     "title": "Withdraw GRAM",

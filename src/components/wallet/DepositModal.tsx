@@ -28,6 +28,7 @@ export function DepositModal({ open, onClose }: Props) {
   const [amount, setAmount] = useState(4);
   const [raw, setRaw] = useState('4');
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const setAmt = (n: number) => {
     setAmount(n);
@@ -35,19 +36,20 @@ export function DepositModal({ open, onClose }: Props) {
   };
 
   const valid = amount > 0 && Number.isFinite(amount);
+  // the deposit is attributed by the Telegram ID in the transfer comment
+  const memo = String(profile?.telegramId ?? '').replace(/\D+/g, '');
 
   const onConfirm = async () => {
+    setErr(null);
     if (!address) {
       haptic.impact('medium');
       tonConnectUI.openModal();
       return;
     }
     if (!valid || busy) return;
-    // the deposit is attributed by the Telegram ID in the transfer comment —
-    // ton-deposit-webhook parses the numeric memo, so send exactly that.
-    const memo = String(profile?.telegramId ?? '').replace(/\D+/g, '');
     if (!memo) {
       haptic.notify('error');
+      setErr(t('deposit.needAuth'));
       return;
     }
     setBusy(true);
@@ -68,6 +70,7 @@ export function DepositModal({ open, onClose }: Props) {
       onClose();
     } catch {
       haptic.notify('error');
+      setErr(t('deposit.txRejected'));
     } finally {
       setBusy(false);
     }
@@ -124,8 +127,14 @@ export function DepositModal({ open, onClose }: Props) {
       </div>
 
       <div className="mt-3 rounded-2xl border-2 border-black bg-farm-card/70 p-3 text-[11px] text-white/55">
-        {t('deposit.note', { addr: shortAddress(TREASURY_ADDRESS, 6, 4) })}
+        {t('deposit.note', { addr: shortAddress(TREASURY_ADDRESS, 6, 4), memo: memo || '—' })}
       </div>
+
+      {err && (
+        <div className="mt-2 rounded-xl border-2 border-neon-pink bg-neon-pink/10 px-3 py-1.5 text-[11px] font-bold text-neon-pink">
+          {err}
+        </div>
+      )}
 
       <div className="mt-4">
         <GameButton accent="lime" block disabled={busy} onClick={onConfirm}>

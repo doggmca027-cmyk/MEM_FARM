@@ -179,9 +179,11 @@
   "deposit": {
     "title": "Depositar GRAM",
     "orAmount": "O introduce un importe",
-    "note": "Los fondos van a la tesorería {addr} con el comentario memefarm:deposit. El saldo se actualiza tras la confirmación de la red.",
+    "note": "Los fondos van a la tesorería {addr}. Pon tu Telegram ID en el comentario: {memo}. El saldo se actualiza tras la confirmación de la red.",
     "topUp": "Recargar {n} GRAM",
-    "opening": "Abriendo la cartera…"
+    "opening": "Abriendo la cartera…",
+    "needAuth": "Abre la app dentro de Telegram para depositar",
+    "txRejected": "Transacción rechazada"
   },
   "withdraw": {
     "title": "Retirar GRAM",

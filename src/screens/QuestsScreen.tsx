@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { CalendarDays, CheckCircle2, Circle, Flame, Gift, Lock, Sparkles } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Circle, Flame, Gift, Sparkles } from 'lucide-react';
 import type { Reward } from '../types/quests';
 import {
   selectCanCheckIn,
@@ -37,7 +37,6 @@ export function QuestsScreen() {
   const t = useT();
   const streakDay = useGameStore((s) => s.streakDay);
   const quests = useGameStore((s) => s.quests);
-  const dailyChestClaimed = useGameStore((s) => s.dailyChestClaimed);
   const canCheckIn = useGameStore(selectCanCheckIn);
   // useShallow: selectDailyProgress returns a fresh object — without shallow
   // equality Zustand v5 re-renders every frame → "Maximum update depth" crash.
@@ -46,7 +45,6 @@ export function QuestsScreen() {
   const tickDaily = useGameStore((s) => s.tickDaily);
   const claimDailyCheckIn = useGameStore((s) => s.claimDailyCheckIn);
   const claimQuestReward = useGameStore((s) => s.claimQuestReward);
-  const claimDailyChest = useGameStore((s) => s.claimDailyChest);
 
   const [msLeft, setMsLeft] = useState(() => msUntilUtcMidnight());
 
@@ -60,7 +58,6 @@ export function QuestsScreen() {
   }, [tickDaily]);
 
   const nextDay = canCheckIn ? (streakDay >= 7 ? 1 : streakDay + 1) : -1;
-  const chestReady = progress.done === progress.total && progress.total > 0 && !dailyChestClaimed;
 
   const onCheckIn = () => {
     if (!canCheckIn) return;
@@ -203,37 +200,6 @@ export function QuestsScreen() {
             );
           })}
         </ul>
-
-        {/* bonus chest */}
-        <div
-          className={[
-            'mt-3 flex items-center justify-between gap-3 rounded-3xl border-2 border-b-4 border-black border-b-black/50 p-3 backdrop-blur-md',
-            chestReady ? 'border-neon-yellow bg-neon-yellow/10' : 'bg-farm-card/60',
-          ].join(' ')}
-        >
-          <div className="flex items-center gap-2">
-            {chestReady ? (
-              <Gift className="h-7 w-7 text-neon-yellow" strokeWidth={2.5} />
-            ) : (
-              <Lock className="h-6 w-6 text-white/35" strokeWidth={2.5} />
-            )}
-            <div>
-              <div className="font-display text-sm text-stroke-sm">{t('quests.bonusChest')}</div>
-              <div className="text-[10px] text-white/45">{t('quests.forAllTasks')}</div>
-            </div>
-          </div>
-          <GameButton
-            accent="yellow"
-            disabled={!chestReady}
-            onClick={() => {
-              haptic.notify('success');
-              firePop();
-              claimDailyChest();
-            }}
-          >
-            {dailyChestClaimed ? t('quests.opened') : t('quests.open')}
-          </GameButton>
-        </div>
       </section>
     </div>
   );
