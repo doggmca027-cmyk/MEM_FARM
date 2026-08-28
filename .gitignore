@@ -23,3 +23,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 supabase/.temp/
 supabase/.branches/
+
+# vercel
+.vercel
+
+# local ops helper (real secrets) — never commit
+supabase/crons.sql
