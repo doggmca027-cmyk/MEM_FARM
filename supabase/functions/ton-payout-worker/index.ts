@@ -22,10 +22,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { mnemonicToPrivateKey } from 'npm:@ton/crypto@3.3.0';
 import {
   TonClient,
-  WalletContractV4,
+  WalletContractV5R1,
   internal,
   toNano,
   Address,
+  SendMode,
 } from 'npm:@ton/ton@15.1.0';
 
 const MNEMONIC = (Deno.env.get('TREASURY_WALLET_MNEMONIC') ?? '').trim();
@@ -73,7 +74,8 @@ Deno.serve(async (req) => {
   });
 
   const key = await mnemonicToPrivateKey(MNEMONIC.split(/\s+/));
-  const wallet = WalletContractV4.create({ workchain: 0, publicKey: key.publicKey });
+  // v5r1 treasury wallet (Tonkeeper / MyTonWallet default on new wallets)
+  const wallet = WalletContractV5R1.create({ workchain: 0, publicKey: key.publicKey });
   const contract = client.open(wallet);
 
   const results: Array<Record<string, unknown>> = [];
@@ -96,6 +98,7 @@ Deno.serve(async (req) => {
       await contract.sendTransfer({
         seqno: seqnoBefore,
         secretKey: key.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
         messages: [
           internal({
             to: dest,
