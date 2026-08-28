@@ -125,6 +125,7 @@ interface UserCharacterRow {
   id: string;
   template_id: string;
   level: number;
+  study_level: number | null;
   current_income_day: string;
   current_power: number | null;
   is_equipped: boolean;
@@ -155,15 +156,18 @@ function toCharacter(row: UserCharacterRow): MemeCharacter {
   const tpl = row.character_templates;
   const tier = (tpl?.tier ?? 1) as TierId;
   const cardSlot = (tpl?.card_slot ?? 1) as CardSlot;
+  const basePower = num(tpl?.base_power);
   return {
     id: row.id,
     name: tpl?.name ?? 'Unknown',
     memeType: tpl?.meme_type ?? 'capybara',
     rarity: tpl?.rarity ?? 'common',
     level: row.level,
+    studyLevel: row.study_level ?? 0,
     baseIncome: num(tpl?.base_income_day),
     currentIncome: num(row.current_income_day),
-    power: row.current_power != null ? num(row.current_power) : num(tpl?.base_power),
+    basePower,
+    power: row.current_power != null ? num(row.current_power) : basePower,
     imageUrl: tpl?.image_url ?? '',
     tier,
     cardSlot,
@@ -400,7 +404,7 @@ export async function fetchFarmData(): Promise<FarmData> {
     db
       .from('user_characters')
       .select(
-        'id, template_id, level, current_income_day, current_power, is_equipped, character_templates(*)',
+        'id, template_id, level, study_level, current_income_day, current_power, is_equipped, character_templates(*)',
       )
       .eq('user_id', uid),
   ]);

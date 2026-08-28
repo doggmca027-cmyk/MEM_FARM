@@ -11,12 +11,17 @@ export interface MemeCharacter {
   name: string;
   memeType: MemeType;
   rarity: Rarity;
+  /** Merge level — raised only by Merge. Drives income AND part of power. */
   level: number;
+  /** Study points — raised only by Study. Drives PvP power only, never income. */
+  studyLevel: number;
   /** GRAM / day at level 1 (the card's base — merge formula uses this). */
   baseIncome: number;
-  /** GRAM / day right now (level applied). */
+  /** GRAM / day right now (merge level applied). */
   currentIncome: number;
-  /** PvP power, grows with level / merges. */
+  /** PvP power at merge level 1 / study 0 — base for the power formula. */
+  basePower: number;
+  /** PvP power right now — base * (merge-level + study-level contributions). */
   power: number;
   imageUrl: string;
   /** Which gacha tier / card this instance came from. */

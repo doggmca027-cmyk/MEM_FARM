@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, GraduationCap, Sparkles } from 'lucide-react';
 import {
+  characterPower,
   flattenCharacters,
-  nextLevelIncome,
-  nextLevelPower,
   studyFeeGram,
   useGameStore,
 } from '../../store/useGameStore';
@@ -45,10 +44,11 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
   }, [open, characterId, roster]);
 
   const selected = roster.find((c) => c.id === selectedId) ?? null;
-  const fee = selected ? studyFeeGram(selected.level) : 0;
+  const fee = selected ? studyFeeGram(selected.studyLevel) : 0;
   const canAfford = selected ? balanceGram + 1e-9 >= fee : false;
-  const nextIncome = selected ? nextLevelIncome(selected.currentIncome) : 0;
-  const nextPower = selected ? nextLevelPower(selected.power) : 0;
+  const nextPower = selected
+    ? characterPower(selected.basePower, selected.level, selected.studyLevel + 1)
+    : 0;
 
   const doUpgrade = () => {
     if (!selected || !canAfford) return;
@@ -125,21 +125,17 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
             </motion.span>
           </div>
 
-          {/* now -> next: income */}
+          {/* Study raises PvP power only — income is unaffected */}
           <div className="mt-3 flex items-center gap-3">
             <StatBlock
-              label={t('study.incomeAt', { n: selected.level })}
-              value={`${fmtGram(selected.currentIncome, 3)} /d`}
+              label={t('study.power')}
+              value={formatNum(selected.power)}
             />
-            <ArrowRight className="h-5 w-5 flex-none text-neon-lime" strokeWidth={3} />
-            <StatBlock label={t('study.lvl', { n: selected.level + 1 })} value={`${fmtGram(nextIncome, 3)} /d`} highlight />
-          </div>
-
-          {/* now -> next: power */}
-          <div className="mt-2 flex items-center gap-3">
-            <StatBlock label={t('study.power')} value={formatNum(selected.power)} />
-            <ArrowRight className="h-5 w-5 flex-none text-neon-lime" strokeWidth={3} />
+            <ArrowRight className="h-5 w-5 flex-none text-neon-lime dir-ltr" strokeWidth={3} />
             <StatBlock label={t('study.after')} value={formatNum(nextPower)} highlight />
+          </div>
+          <div className="mt-2 text-center text-[10px] font-bold uppercase tracking-wide text-white/35">
+            {t('study.incomeNote')}
           </div>
 
           {/* cost + action */}

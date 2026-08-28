@@ -45,6 +45,7 @@
   },
   "study": {
     "title": "Çalış",
+    "incomeNote": "Gelir değişmez — yalnızca Güç",
     "cost": "Maliyet:",
     "balance": "bakiye {n}",
     "improve": "Yükselt",
@@ -55,6 +56,7 @@
   },
   "merge": {
     "title": "Birleştir · {name}",
+    "burnWarning": "⚠️ Birleştirme başarısız olursa fazladan kart yanar",
     "win": "Başarı",
     "burnRisk": "Yanma riski",
     "crafting": "Üretiliyor…",

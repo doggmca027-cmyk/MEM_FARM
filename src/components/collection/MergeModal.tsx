@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Flame, Layers, Skull, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Flame, Layers, Skull, Sparkles } from 'lucide-react';
 import { flattenCharacters, mergeFee, useGameStore } from '../../store/useGameStore';
 import { MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../lib/meme';
 import { fmtGram, formatNum } from '../../lib/format';
@@ -207,29 +207,10 @@ export function MergeModal({ open, onClose, name, level }: Props) {
 
       {/* ============ READY / CRAFTING ============ */}
       {phase !== 'result' && (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border-2 border-black bg-neon-lime/15 py-2 text-center">
-              <div className="font-display text-xl text-neon-lime text-stroke-sm">70%</div>
-              <div className="text-[9px] font-extrabold uppercase text-white/50">{t('merge.win')}</div>
-            </div>
-            <div className="rounded-2xl border-2 border-black bg-neon-pink/15 py-2 text-center">
-              <div className="inline-flex items-center gap-1 font-display text-xl text-neon-pink text-stroke-sm">
-                <Flame className="h-4 w-4" strokeWidth={3} />
-                30%
-              </div>
-              <div className="text-[9px] font-extrabold uppercase text-white/50">{t('merge.burnRisk')}</div>
-            </div>
-          </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] font-bold text-white/50">
-            <span>+1 · 55%</span>
-            <span className="text-neon-cyan">
-              <Zap className="mr-0.5 inline h-3 w-3" strokeWidth={3} />+2 · 10%
-            </span>
-            <span className="text-neon-yellow">🔥 +3 · 4%</span>
-            <span className="text-neon-yellow">👑 +4 · 1%</span>
-          </div>
-        </>
+        <div className="flex items-start gap-2 rounded-2xl border-2 border-black bg-neon-pink/10 px-3 py-2.5 text-[11px] font-bold text-neon-pink">
+          <Flame className="mt-0.5 h-4 w-4 flex-none" strokeWidth={3} />
+          <span>{t('merge.burnWarning')}</span>
+        </div>
       )}
 
       {/* ============ RESULT ============ */}
@@ -265,11 +246,13 @@ export function MergeModal({ open, onClose, name, level }: Props) {
                   label={t('merge.income')}
                   from={`${fmtGram(mergeResult.incomeBefore, 3)} /d`}
                   to={`${fmtGram(mergeResult.incomeAfter, 3)} /d`}
+                  gain={`+${fmtGram(mergeResult.incomeAfter - mergeResult.incomeBefore, 3)}/d`}
                 />
                 <Row
                   label={t('merge.powerStat')}
                   from={formatNum(mergeResult.powerBefore)}
                   to={formatNum(mergeResult.powerAfter)}
+                  gain={`+${formatNum(mergeResult.powerAfter - mergeResult.powerBefore)} ⚡`}
                 />
               </div>
             </>
@@ -312,11 +295,24 @@ export function MergeModal({ open, onClose, name, level }: Props) {
   );
 }
 
-function Row({ label, from, to }: { label: string; from: string; to: string }) {
+function Row({
+  label,
+  from,
+  to,
+  gain,
+}: {
+  label: string;
+  from: string;
+  to: string;
+  gain?: string;
+}) {
   return (
     <div className="flex items-center justify-between py-0.5 text-xs">
-      <span className="font-bold text-white/45">{label}</span>
-      <span className="flex items-center gap-1.5 font-display text-stroke-sm">
+      <span className="font-bold text-white/45">
+        {label}
+        {gain && <span className="ml-1 text-neon-lime dir-ltr">{gain}</span>}
+      </span>
+      <span className="flex items-center gap-1.5 font-display text-stroke-sm dir-ltr">
         <span className="text-white/60">{from}</span>
         <ArrowRight className="h-3.5 w-3.5 text-neon-lime" strokeWidth={3} />
         <span className="text-neon-lime">{to}</span>

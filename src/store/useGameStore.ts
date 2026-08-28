@@ -72,9 +72,12 @@ export function withdrawalFee(amount: number): number {
   return round4(Math.max(WITHDRAW_FEE_MIN, amount * WITHDRAW_FEE_PCT));
 }
 
-/** Study fee, GRAM — `0.05 * 1.5^(level-1)`. */
-export function studyFeeGram(level: number): number {
-  return round4(0.05 * Math.pow(1.5, level - 1));
+/**
+ * Study fee, GRAM — scales with the study point being bought (0-indexed):
+ * `0.05 * 1.5^studyLevel` (first upgrade, studyLevel 0, costs 0.05).
+ */
+export function studyFeeGram(studyLevel: number): number {
+  return round4(0.05 * Math.pow(1.5, Math.max(0, studyLevel)));
 }
 
 /** Bonus leaderboard XP granted per action (never spent). */
@@ -82,22 +85,32 @@ export const XP_PER_ROLL = 10;
 export const XP_MERGE_BASE = 30;
 export const XP_MERGE_PER_LEVEL = 15;
 
-/** Study: doubles daily income per level. */
-export function nextLevelIncome(current: number): number {
-  return round4(current * 2);
-}
-
-/** Study: +50% PvP power per level. */
-export function nextLevelPower(current: number): number {
-  return round4(current * 1.5);
-}
-
 const MERGE_GROWTH = 1.75;
 export const MERGE_LEVEL_CAP = 10;
 
-/** Merge: income at a level = base * 1.75^(level-1). */
-export function mergedIncome(baseIncome: number, newLevel: number): number {
-  return round4(baseIncome * Math.pow(MERGE_GROWTH, newLevel - 1));
+/** +35% of base power per merge level above 1. */
+export const POWER_MERGE_STEP = 0.35;
+/** +50% of base power per study point (Study is the dedicated power path). */
+export const POWER_STUDY_STEP = 0.5;
+
+/** Merge: income at a merge level = base * 1.75^(level-1). Study never touches this. */
+export function mergedIncome(baseIncome: number, mergeLevel: number): number {
+  return round4(baseIncome * Math.pow(MERGE_GROWTH, mergeLevel - 1));
+}
+
+/**
+ * PvP power = base * (1 + 0.35*(mergeLevel-1) + 0.5*studyLevel).
+ * Merge-level and study-level contributions are summed off the card's base.
+ */
+export function characterPower(
+  basePower: number,
+  mergeLevel: number,
+  studyLevel: number,
+): number {
+  return Math.round(
+    basePower *
+      (1 + POWER_MERGE_STEP * (mergeLevel - 1) + POWER_STUDY_STEP * Math.max(0, studyLevel)),
+  );
 }
 
 /** Merge sink fee, GRAM — scales with tier: 0.02 * 2^(tier-1). */
@@ -106,12 +119,10 @@ export function mergeFee(tier: TierId): number {
 }
 
 /**
- * Risk/Reward merge roll (1..100):
- *   1..30  FAIL      — material burns, survivor stays at level N
- *   31..85 SUCCESS   — +1 level
- *   86..95 CRIT      — +2 levels
- *   96..99 CRIT      — +3 levels
- *   100    CRIT      — +4 levels (jackpot)
+ * Hardcore merge roll:
+ *   roll 1..100 — 1..50 FAIL (material burns, survivor stays at level N)
+ *              — 51..100 SUCCESS, then a sub-roll picks the level gain:
+ *                  +1 (80%) · +2 (15%) · +3 (4%) · +4 (1%)
  */
 export function rollMerge(rng: () => number = Math.random): {
   status: 'FAIL' | 'SUCCESS' | 'CRIT';
@@ -119,11 +130,10 @@ export function rollMerge(rng: () => number = Math.random): {
   roll: number;
 } {
   const n = Math.floor(rng() * 100) + 1;
-  if (n <= 30) return { status: 'FAIL', delta: 0, roll: n };
-  if (n <= 85) return { status: 'SUCCESS', delta: 1, roll: n };
-  if (n <= 95) return { status: 'CRIT', delta: 2, roll: n };
-  if (n <= 99) return { status: 'CRIT', delta: 3, roll: n };
-  return { status: 'CRIT', delta: 4, roll: n };
+  if (n <= 50) return { status: 'FAIL', delta: 0, roll: n };
+  const s = Math.floor(rng() * 100) + 1;
+  const delta = s <= 80 ? 1 : s <= 95 ? 2 : s <= 99 ? 3 : 4;
+  return { status: delta === 1 ? 'SUCCESS' : 'CRIT', delta, roll: n };
 }
 
 // --- quests / streak / pvp -------------------------------------------------
@@ -165,8 +175,10 @@ function characterFromCard(card: GachaCard): MemeCharacter {
     memeType: card.memeType,
     rarity: card.rarity,
     level: 1,
+    studyLevel: 0,
     baseIncome: card.incomePerDay,
     currentIncome: card.incomePerDay,
+    basePower: card.power,
     power: card.power,
     imageUrl: '',
     tier: card.tier,
@@ -611,7 +623,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const owner = s.tiers.find((r) => r.characters.some((c) => c.id === characterId));
     const target = owner?.characters.find((c) => c.id === characterId);
     if (!owner || !target) return;
-    if (s.balanceGram + 1e-9 < studyFeeGram(target.level)) return;
+    if (s.balanceGram + 1e-9 < studyFeeGram(target.studyLevel)) return;
 
     if (s.mode === 'live') {
       try {
@@ -627,9 +639,10 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       const own = st.tiers.find((r) => r.characters.some((c) => c.id === characterId));
       const tgt = own?.characters.find((c) => c.id === characterId);
       if (!own || !tgt) return st;
-      const fee = studyFeeGram(tgt.level);
+      const fee = studyFeeGram(tgt.studyLevel);
       if (st.balanceGram + 1e-9 < fee) return st;
 
+      // Study raises PvP power only — income (currentIncome) is never touched.
       const tiers = st.tiers.map((r) =>
         r.tier === own.tier
           ? {
@@ -638,16 +651,14 @@ export const useGameStore = create<GameStore>()((set, get) => ({
                 c.id === characterId
                   ? {
                       ...c,
-                      level: c.level + 1,
-                      currentIncome: nextLevelIncome(c.currentIncome),
-                      power: nextLevelPower(c.power),
+                      studyLevel: c.studyLevel + 1,
+                      power: characterPower(c.basePower, c.level, c.studyLevel + 1),
                     }
                   : c,
               ),
             }
           : r,
       );
-      const incomePerDay = totalIncome(tiers);
       const t = Date.now();
       const tx: Transaction = {
         id: `tx-${t}`,
@@ -661,8 +672,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         balanceGram: round4(st.balanceGram - fee),
         tiers,
         transactions: [tx, ...st.transactions],
-        incomePerDay,
-        farm: { ...st.farm, totalIncomePerDay: incomePerDay },
         quests: bumpQuests(st.quests, 'study_upgrade'),
       };
     });
@@ -721,12 +730,14 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
       const isFail = outcome.status === 'FAIL';
       const newLevel = isFail ? level : Math.min(MERGE_LEVEL_CAP, level + outcome.delta);
+      // Merge raises the merge level → income AND power both grow (deterministic
+      // off the card's base; the survivor's Study points are preserved).
       const incomeAfter = isFail
         ? survivor.currentIncome
         : mergedIncome(survivor.baseIncome, newLevel);
       const powerAfter = isFail
         ? survivor.power
-        : round4(survivor.power * Math.pow(1.75, newLevel - level));
+        : characterPower(survivor.basePower, newLevel, survivor.studyLevel);
 
       const tiers = st.tiers.map((r) => {
         if (r.tier !== own.tier) return r;

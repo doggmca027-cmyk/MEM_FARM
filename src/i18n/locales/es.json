@@ -45,6 +45,7 @@
   },
   "study": {
     "title": "Estudiar",
+    "incomeNote": "Los ingresos no cambian — solo Poder",
     "cost": "Coste:",
     "balance": "saldo {n}",
     "improve": "Mejorar",
@@ -55,6 +56,7 @@
   },
   "merge": {
     "title": "Fusión · {name}",
+    "burnWarning": "⚠️ Si la fusión falla, la carta extra se quema",
     "win": "Éxito",
     "burnRisk": "Riesgo de quema",
     "crafting": "Creando…",
