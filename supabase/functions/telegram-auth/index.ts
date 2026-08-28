@@ -79,7 +79,7 @@ function timingSafeEqual(a: string, b: string): boolean {
  */
 async function verifyInitData(
   initData: string,
-): Promise<{ user: string; authDate: number } | { error: string }> {
+): Promise<{ user: string; authDate: number } | { error: string; debug?: unknown }> {
   let hash = '';
   const kv: Record<string, string> = {};
   for (const chunk of initData.split('&')) {
@@ -96,18 +96,35 @@ async function verifyInitData(
     if (key === 'signature') continue; // Ed25519 field — not in the HMAC check string
     kv[key] = val;
   }
-  if (!hash) return { error: 'no hash in initData' };
+  if (!hash) return { error: 'no hash in initData', debug: { raw: initData.slice(0, 60) } };
 
-  const dataCheckString = Object.keys(kv)
-    .sort()
-    .map((k) => `${k}=${kv[k]}`)
-    .join('\n');
+  const keys = Object.keys(kv).sort();
+  const dataCheckString = keys.map((k) => `${k}=${kv[k]}`).join('\n');
 
   // secret_key = HMAC_SHA256(key = "WebAppData", data = bot_token)
   const secretKey = await hmacSha256(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
   const computed = toHex(await hmacSha256(secretKey, dataCheckString));
-  if (!timingSafeEqual(computed, hash.toLowerCase())) {
-    return { error: 'hash mismatch (bot token vs initData)' };
+
+  // alt: some old clients used the Login-Widget scheme (secret = SHA256(bot_token))
+  const altSecret = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(BOT_TOKEN)),
+  );
+  const altComputed = toHex(await hmacSha256(altSecret, dataCheckString));
+
+  if (
+    !timingSafeEqual(computed, hash.toLowerCase()) &&
+    !timingSafeEqual(altComputed, hash.toLowerCase())
+  ) {
+    return {
+      error: 'hash mismatch (bot token vs initData)',
+      debug: {
+        keys,
+        recv: hash.slice(0, 12),
+        calc: computed.slice(0, 12),
+        alt: altComputed.slice(0, 12),
+        botId: BOT_TOKEN.split(':')[0],
+      },
+    };
   }
 
   const authDate = Number(kv['auth_date'] ?? '0');
@@ -138,7 +155,9 @@ Deno.serve(async (req) => {
   if (!initData) return json({ error: 'missing initData' }, 400);
 
   const verified = await verifyInitData(initData);
-  if ('error' in verified) return json({ error: verified.error }, 401);
+  if ('error' in verified) {
+    return json({ error: verified.error, debug: verified.debug }, 401);
+  }
 
   let tgUser: { id?: number; username?: string; first_name?: string };
   try {
