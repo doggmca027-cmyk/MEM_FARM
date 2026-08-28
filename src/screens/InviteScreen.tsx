@@ -122,11 +122,15 @@ export function InviteScreen() {
             {t('invite.yourCode')}
           </div>
           <div className="font-display text-2xl tracking-[0.2em] text-neon-yellow text-stroke dir-ltr">
-            {code}
+            {code || '— — —'}
           </div>
-          <div className="mt-1 truncate text-[10px] text-white/40 dir-ltr">
-            t.me/{BOT_USERNAME || 'bot'}?startapp=ref_{code || '…'}
-          </div>
+          {code ? (
+            <div className="mt-1 truncate text-[10px] text-white/40 dir-ltr">
+              t.me/{BOT_USERNAME || 'bot'}?startapp=ref_{code}
+            </div>
+          ) : (
+            <div className="mt-1 text-[10px] text-neon-pink">{t('invite.codeAfterLogin')}</div>
+          )}
         </div>
 
         <div className="relative mt-3 grid grid-cols-2 gap-2">

@@ -224,7 +224,8 @@
     "invitedFriends": "Davet edilen arkadaşlar",
     "emptyState": "Henüz referansın yok. İlk arkadaşını davet et ve %5 pasif gelir kazan!",
     "agoDays": "{n} gün önce",
-    "agoHours": "{n} sa önce"
+    "agoHours": "{n} sa önce",
+    "codeAfterLogin": "Kodun Telegram ile giriş sonrası görünür"
   },
   "collection": {
     "title": "Koleksiyon",

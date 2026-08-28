@@ -224,7 +224,8 @@
     "invitedFriends": "Invited frens",
     "emptyState": "You have no referrals yet. Invite your first fren and earn 5% passive income!",
     "agoDays": "{n}d ago",
-    "agoHours": "{n}h ago"
+    "agoHours": "{n}h ago",
+    "codeAfterLogin": "Your code appears after signing in via Telegram"
   },
   "collection": {
     "title": "Collection",

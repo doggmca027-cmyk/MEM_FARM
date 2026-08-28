@@ -224,7 +224,8 @@
     "invitedFriends": "Teman yang diundang",
     "emptyState": "Kamu belum punya referral. Undang teman pertamamu dan dapatkan 5% penghasilan pasif!",
     "agoDays": "{n} hr lalu",
-    "agoHours": "{n} jam lalu"
+    "agoHours": "{n} jam lalu",
+    "codeAfterLogin": "Kodemu muncul setelah masuk lewat Telegram"
   },
   "collection": {
     "title": "Koleksi",

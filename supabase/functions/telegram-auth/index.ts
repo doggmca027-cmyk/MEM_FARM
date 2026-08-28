@@ -70,36 +70,54 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Validate the Telegram WebApp initData string. Returns parsed params or an error tag. */
+/**
+ * Validate the Telegram WebApp initData string.
+ * Parsed manually (NOT via URLSearchParams — which turns "+" into a space and
+ * would corrupt the check string). Per the spec: split on "&", split each on
+ * the first "=", urldecode the value, drop `hash` (+ `signature`), sort by key,
+ * join "key=value" with "\n", HMAC with a "WebAppData"-derived secret.
+ */
 async function verifyInitData(
   initData: string,
-): Promise<{ params: URLSearchParams } | { error: string }> {
-  const params = new URLSearchParams(initData);
-  const hash = params.get('hash');
+): Promise<{ user: string; authDate: number } | { error: string }> {
+  let hash = '';
+  const kv: Record<string, string> = {};
+  for (const chunk of initData.split('&')) {
+    const eq = chunk.indexOf('=');
+    if (eq < 0) continue;
+    const key = chunk.slice(0, eq);
+    let val: string;
+    try {
+      val = decodeURIComponent(chunk.slice(eq + 1));
+    } catch {
+      val = chunk.slice(eq + 1);
+    }
+    if (key === 'hash') { hash = val; continue; }
+    if (key === 'signature') continue; // Ed25519 field — not in the HMAC check string
+    kv[key] = val;
+  }
   if (!hash) return { error: 'no hash in initData' };
 
-  params.delete('hash');
-  params.delete('signature'); // Telegram's Ed25519 field — not part of the HMAC check string
-  const dataCheckString = [...params.entries()]
-    .map(([k, v]) => `${k}=${v}`)
+  const dataCheckString = Object.keys(kv)
     .sort()
+    .map((k) => `${k}=${kv[k]}`)
     .join('\n');
 
   // secret_key = HMAC_SHA256(key = "WebAppData", data = bot_token)
   const secretKey = await hmacSha256(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
   const computed = toHex(await hmacSha256(secretKey, dataCheckString));
-  if (!timingSafeEqual(computed, hash)) {
-    return { error: `hash mismatch (bot token vs initData)` };
+  if (!timingSafeEqual(computed, hash.toLowerCase())) {
+    return { error: 'hash mismatch (bot token vs initData)' };
   }
 
-  const authDate = Number(params.get('auth_date') ?? '0');
+  const authDate = Number(kv['auth_date'] ?? '0');
   if (!authDate) return { error: 'no auth_date' };
   const ageSec = Math.floor(Date.now() / 1000 - authDate);
   if (ageSec > AUTH_DATE_MAX_AGE_SEC) {
     return { error: `initData too old (${Math.floor(ageSec / 86400)}d) — relaunch the app` };
   }
 
-  return { params };
+  return { user: kv['user'] ?? '{}', authDate };
 }
 
 Deno.serve(async (req) => {
@@ -121,11 +139,10 @@ Deno.serve(async (req) => {
 
   const verified = await verifyInitData(initData);
   if ('error' in verified) return json({ error: verified.error }, 401);
-  const params = verified.params;
 
   let tgUser: { id?: number; username?: string; first_name?: string };
   try {
-    tgUser = JSON.parse(params.get('user') ?? '{}');
+    tgUser = JSON.parse(verified.user);
   } catch {
     return json({ error: 'malformed user payload' }, 400);
   }

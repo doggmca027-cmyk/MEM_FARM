@@ -434,7 +434,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   openLobbies: [],
   leaderboard: [],
 
-  referralCode: '7H4X9K',
+  referralCode: '', // real code arrives from the server on hydrate (live)
   referralStats: {
     l1Count: 0,
     l2Count: 0,

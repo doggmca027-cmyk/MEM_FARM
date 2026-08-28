@@ -224,7 +224,8 @@
     "invitedFriends": "Amigos invitados",
     "emptyState": "Aún no tienes referidos. ¡Invita a tu primer amigo y gana un 5% de ingresos pasivos!",
     "agoDays": "hace {n} d",
-    "agoHours": "hace {n} h"
+    "agoHours": "hace {n} h",
+    "codeAfterLogin": "Tu código aparece tras iniciar sesión con Telegram"
   },
   "collection": {
     "title": "Colección",
