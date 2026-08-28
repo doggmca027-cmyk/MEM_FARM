@@ -23,6 +23,7 @@ import {
   adminUpdateEmissionFactor,
   claimIncomeRPC,
   claimReferralRewardsRPC,
+  DEFAULT_NOTIF_PREFS,
   fetchFarmData,
   fetchReferralData,
   fetchTransactions,
@@ -31,6 +32,8 @@ import {
   requestWithdrawalRPC,
   rollTierRPC,
   studyUpgradeRPC,
+  updateNotifPrefs,
+  type NotifPrefs,
   type ProfileData,
 } from '../services/api';
 
@@ -255,6 +258,8 @@ interface GameStore {
 
   /** admin panel overlay (only reachable when `profile.isAdmin`). */
   adminOpen: boolean;
+  settingsOpen: boolean;
+  notifPrefs: NotifPrefs;
 
   /** epoch ms of the last withdrawal request (24h cooldown), or null. */
   lastWithdrawAt: number | null;
@@ -291,6 +296,10 @@ interface GameStore {
 
   /** Move accrued referral commission into the main balance. Live: `claim_referral_rewards`. */
   claimReferralEarnings: () => void;
+
+  setSettingsOpen: (open: boolean) => void;
+  /** Toggle a push-notification preference (persists to Supabase in live mode). */
+  setNotifPref: (key: keyof NotifPrefs, value: boolean) => void;
 
   // --- admin (live only, requires profile.isAdmin) ---
   setAdminOpen: (open: boolean) => void;
@@ -371,6 +380,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   invites: 0,
   adminOpen: false,
+  settingsOpen: false,
+  notifPrefs: { ...DEFAULT_NOTIF_PREFS },
   lastWithdrawAt: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -395,6 +406,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         mode: 'live',
         status: 'ready',
         profile,
+        notifPrefs: profile.notifPrefs ?? st.notifPrefs,
         referralCode: profile.referralCode ?? st.referralCode,
         balanceGram: farmData.balanceGram,
         pendingGram: farmData.pendingGram,
@@ -876,6 +888,22 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       ],
     }));
   },
+
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+  setNotifPref: (key, value) =>
+    set((s) => {
+      const notifPrefs = { ...s.notifPrefs, [key]: value };
+      if (s.mode === 'live') {
+        void updateNotifPrefs(notifPrefs).catch((err) =>
+          console.warn('[store] updateNotifPrefs failed:', err),
+        );
+      }
+      return {
+        notifPrefs,
+        profile: s.profile ? { ...s.profile, notifPrefs } : s.profile,
+      };
+    }),
 
   // --- admin ---
   setAdminOpen: (open) => set({ adminOpen: open }),

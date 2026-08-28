@@ -1,5 +1,5 @@
 import { TonConnectButton } from '@tonconnect/ui-react';
-import { Crown } from 'lucide-react';
+import { Crown, Settings } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { fmtGram } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
@@ -21,6 +21,7 @@ export function TopBar({ level = 7 }: { level?: number }) {
   const activeTab = useGameStore((s) => s.activeTab);
   const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
   const setAdminOpen = useGameStore((s) => s.setAdminOpen);
+  const setSettingsOpen = useGameStore((s) => s.setSettingsOpen);
 
   return (
     <header className="safe-t sticky top-0 z-30 bg-farm-deep/85 px-4 pb-3 backdrop-blur-md">
@@ -38,6 +39,16 @@ export function TopBar({ level = 7 }: { level?: number }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              haptic.select();
+              setSettingsOpen(true);
+            }}
+            aria-label="Налаштування"
+            className="grid h-9 w-9 place-items-center rounded-xl border-2 border-black border-b-4 border-b-black/40 bg-farm-card text-white/70 active:translate-y-0.5"
+          >
+            <Settings className="h-4 w-4" strokeWidth={2.75} />
+          </button>
           {isAdmin && (
             <button
               onClick={() => {

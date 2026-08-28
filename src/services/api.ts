@@ -47,7 +47,20 @@ export interface ProfileData {
   referralCode: string | null;
   isAdmin: boolean;
   isBanned: boolean;
+  notifPrefs: NotifPrefs;
 }
+
+export interface NotifPrefs {
+  farm_ready: boolean;
+  pvp_attack: boolean;
+  referral_income: boolean;
+}
+
+export const DEFAULT_NOTIF_PREFS: NotifPrefs = {
+  farm_ready: true,
+  pvp_attack: true,
+  referral_income: true,
+};
 
 export interface FarmData {
   balanceGram: number;
@@ -161,7 +174,9 @@ export async function fetchUserProfile(): Promise<ProfileData> {
   const uid = await requireUserId();
   const { data, error } = await client()
     .from('profiles')
-    .select('id, telegram_id, username, first_name, wallet_address, referral_code, is_admin, is_banned')
+    .select(
+      'id, telegram_id, username, first_name, wallet_address, referral_code, is_admin, is_banned, notif_prefs',
+    )
     .eq('id', uid)
     .single();
 
@@ -175,7 +190,15 @@ export async function fetchUserProfile(): Promise<ProfileData> {
     referralCode: data.referral_code ?? null,
     isAdmin: Boolean(data.is_admin),
     isBanned: Boolean(data.is_banned),
+    notifPrefs: { ...DEFAULT_NOTIF_PREFS, ...((data.notif_prefs as Partial<NotifPrefs>) ?? {}) },
   };
+}
+
+/** Persist notification toggles (RLS: profiles update-own + column grant). */
+export async function updateNotifPrefs(prefs: NotifPrefs): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client().from('profiles').update({ notif_prefs: prefs }).eq('id', uid);
+  if (error) throw error;
 }
 
 // --- admin ---------------------------------------------------------------
