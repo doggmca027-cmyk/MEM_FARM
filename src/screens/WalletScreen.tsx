@@ -10,23 +10,14 @@ import { GameButton } from '../components/ui/GameButton';
 import { GramIcon } from '../components/icons/Icons';
 import { DepositModal } from '../components/wallet/DepositModal';
 import { WithdrawModal } from '../components/wallet/WithdrawModal';
+import { useT } from '../i18n/useT';
 
-const TX_LABEL: Record<string, string> = {
-  DEPOSIT: 'Депозит',
-  WITHDRAW: 'Вивід',
-  FARM_CLAIM: 'Збір з ферми',
-  TIER_ROLL: 'Ролл тіру',
-  STUDY_FEE: 'Навчання',
-  MERGE_FEE: 'Злиття',
-  SLOT_UNLOCK: 'Слот',
-  REFERRAL_REWARD: 'Реферал',
-  STREAK_REWARD: 'Стрік',
-  QUEST_REWARD: 'Завдання',
-};
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
 type Tab = 'history' | 'pending';
 
 export function WalletScreen() {
+  const t = useT();
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
   const address = useTonAddress(); // user-friendly, '' when disconnected
@@ -69,10 +60,10 @@ export function WalletScreen() {
           <div className="relative">
             <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white/70">
               <Wallet className="h-5 w-5 text-neon-cyan" strokeWidth={2.5} />
-              Гаманець не підключено
+              {t('wallet.notConnected')}
             </div>
             <GameButton accent="cyan" block onClick={() => tonConnectUI.openModal()}>
-              Підключити гаманець
+              {t('wallet.connect')}
             </GameButton>
           </div>
         ) : (
@@ -83,7 +74,7 @@ export function WalletScreen() {
                   <Wallet className="h-4 w-4" strokeWidth={3} />
                 </span>
                 <div>
-                  <div className="font-display text-lg leading-none text-stroke-sm">
+                  <div className="font-display text-lg leading-none text-stroke-sm dir-ltr">
                     {shortAddress(address, 4, 3)}
                   </div>
                   <span
@@ -91,7 +82,7 @@ export function WalletScreen() {
                       isTestnet ? 'text-neon-pink' : 'text-neon-lime'
                     }`}
                   >
-                    {isTestnet ? 'Testnet' : 'Mainnet'}
+                    {isTestnet ? t('wallet.testnet') : t('wallet.mainnet')}
                   </span>
                 </div>
               </div>
@@ -115,7 +106,7 @@ export function WalletScreen() {
               className="mt-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-black bg-farm-deep px-3 py-1.5 text-xs font-extrabold uppercase text-neon-pink active:translate-y-0.5"
             >
               <LogOut className="h-3.5 w-3.5" strokeWidth={3} />
-              Відключити
+              {t('wallet.disconnect')}
             </button>
           </div>
         )}
@@ -125,9 +116,9 @@ export function WalletScreen() {
       <div className="relative overflow-hidden rounded-3xl border-2 border-b-4 border-black border-b-black/50 bg-farm-card/80 p-3 backdrop-blur-md">
         <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
         <div className="relative grid grid-cols-3 gap-2 text-center">
-          <BalanceCell label="Доступно" value={fmtGram(balanceGram)} tone="text-neon-lime" big />
-          <BalanceCell label="В обробці" value={fmtGram(pendingGram)} tone="text-neon-yellow" />
-          <BalanceCell label="Зароблено" value={fmtGram(totalEarned, 3)} tone="text-neon-cyan" />
+          <BalanceCell label={t('wallet.available')} value={fmtGram(balanceGram)} tone="text-neon-lime" big />
+          <BalanceCell label={t('wallet.pending')} value={fmtGram(pendingGram)} tone="text-neon-yellow" />
+          <BalanceCell label={t('wallet.earned')} value={fmtGram(totalEarned, 3)} tone="text-neon-cyan" />
         </div>
       </div>
 
@@ -136,13 +127,13 @@ export function WalletScreen() {
         <GameButton accent="lime" block onClick={() => setModal('deposit')}>
           <span className="inline-flex items-center gap-1.5">
             <ArrowDownToLine className="h-4 w-4" strokeWidth={3} />
-            Депозит
+            {t('wallet.deposit')}
           </span>
         </GameButton>
         <GameButton accent="cyan" block onClick={() => setModal('withdraw')}>
           <span className="inline-flex items-center gap-1.5">
             <ArrowUpFromLine className="h-4 w-4" strokeWidth={3} />
-            Вивести
+            {t('wallet.withdraw')}
           </span>
         </GameButton>
       </div>
@@ -151,21 +142,21 @@ export function WalletScreen() {
       <section>
         <div className="mb-3 flex gap-2">
           <TabButton active={tab === 'history'} onClick={() => setTab('history')}>
-            Історія транзакцій
+            {t('wallet.history')}
           </TabButton>
           <TabButton active={tab === 'pending'} onClick={() => setTab('pending')}>
-            Підтвердження {pending.length > 0 && `(${pending.length})`}
+            {t('wallet.confirmations')} {pending.length > 0 && `(${pending.length})`}
           </TabButton>
         </div>
 
         {list.length === 0 ? (
           <div className="grid place-items-center rounded-3xl border-2 border-dashed border-white/20 bg-farm-card/40 py-10 text-center text-xs text-white/45">
-            {tab === 'history' ? 'Ще немає завершених транзакцій' : 'Немає транзакцій в обробці'}
+            {tab === 'history' ? t('wallet.emptyHistory') : t('wallet.emptyPending')}
           </div>
         ) : (
           <ul className="space-y-2">
             {list.map((tx, i) => (
-              <TxCard key={tx.id} tx={tx} index={i} />
+              <TxCard key={tx.id} tx={tx} index={i} t={t} />
             ))}
           </ul>
         )}
@@ -192,7 +183,7 @@ function BalanceCell({
     <div className="relative rounded-2xl border-2 border-black bg-farm-deep px-1 py-2">
       <div className="text-[9px] font-extrabold uppercase tracking-wide text-white/40">{label}</div>
       <div
-        className={`mt-0.5 flex items-center justify-center gap-1 font-display text-stroke-sm ${tone} ${
+        className={`mt-0.5 flex items-center justify-center gap-1 font-display text-stroke-sm dir-ltr ${tone} ${
           big ? 'text-lg' : 'text-sm'
         }`}
       >
@@ -234,7 +225,7 @@ const STATUS_ICON: Record<TransactionStatus, typeof CheckCircle2> = {
   FAILED: XCircle,
 };
 
-function TxCard({ tx, index }: { tx: Transaction; index: number }) {
+function TxCard({ tx, index, t }: { tx: Transaction; index: number; t: TFn }) {
   const credit = CREDIT_TYPES.has(tx.type);
   const Icon = STATUS_ICON[tx.status];
   const mins = Math.max(1, Math.round((Date.now() - tx.timestamp) / 60000));
@@ -263,26 +254,26 @@ function TxCard({ tx, index }: { tx: Transaction; index: number }) {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="font-display text-sm uppercase text-stroke-sm">
-                {TX_LABEL[tx.type] ?? tx.type}
+                {t(`txType.${tx.type}`)}
               </span>
               {tx.status === 'PENDING' && (
                 <span className="rounded-md border-2 border-black bg-neon-yellow px-1 text-[8px] font-extrabold uppercase leading-4 text-black">
-                  Обробляється
+                  {t('wallet.processing')}
                 </span>
               )}
             </div>
             <div className="truncate text-[10px] text-white/40">
               {tx.status === 'PENDING'
-                ? `перевірка · ${mins} хв`
+                ? t('wallet.checkTime', { n: mins })
                 : fmtDateTime(tx.timestamp)}
               {tx.type === 'WITHDRAW' && tx.netAmount != null && tx.fee != null && (
-                <> · чисті {fmtGram(tx.netAmount)} (−{fmtGram(tx.fee)})</>
+                <> · <span className="dir-ltr">{t('wallet.netAfterFee', { net: fmtGram(tx.netAmount), fee: fmtGram(tx.fee) })}</span></>
               )}
             </div>
           </div>
         </div>
         <div
-          className={`flex-none font-display text-sm ${credit ? 'text-neon-lime' : 'text-neon-pink'}`}
+          className={`flex-none font-display text-sm dir-ltr ${credit ? 'text-neon-lime' : 'text-neon-pink'}`}
         >
           {credit ? '+' : '−'}
           {fmtGram(tx.amount, 3)}

@@ -12,12 +12,14 @@ import { formatNum } from '../lib/format';
 import { CollectionCard } from '../components/collection/CollectionCard';
 import { MergeModal } from '../components/collection/MergeModal';
 import { StudyModal } from '../components/farm/StudyModal';
+import { useT } from '../i18n/useT';
 
 const TIERS: TierId[] = [1, 2, 3, 4, 5, 6];
 const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-const TOTAL_CARDS = 60; // 6 tiers x 10 slots
+const TOTAL_CARDS = 30; // 6 tiers x 5 slots
 
 export function CollectionScreen() {
+  const t = useT();
   const tiers = useGameStore((s) => s.tiers);
   const discovered = useGameStore(selectDiscoveredCount);
   const power = useGameStore(selectFarmPower);
@@ -40,8 +42,8 @@ export function CollectionScreen() {
       <div className="relative overflow-hidden rounded-3xl border-2 border-b-4 border-black border-b-black/50 bg-farm-card/80 p-3 backdrop-blur-md">
         <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
         <div className="relative grid grid-cols-2 gap-2 text-center">
-          <Stat label="Відкрито" value={`${discovered} / ${TOTAL_CARDS}`} icon={<Sparkles className="h-3.5 w-3.5" strokeWidth={3} />} tone="text-neon-yellow" />
-          <Stat label="Сила ферми" value={formatNum(power)} icon={<Zap className="h-3.5 w-3.5" strokeWidth={3} />} tone="text-neon-cyan" />
+          <Stat label={t('collection.opened')} value={`${discovered} / ${TOTAL_CARDS}`} icon={<Sparkles className="h-3.5 w-3.5" strokeWidth={3} />} tone="text-neon-yellow" />
+          <Stat label={t('collection.farmPower')} value={formatNum(power)} icon={<Zap className="h-3.5 w-3.5" strokeWidth={3} />} tone="text-neon-cyan" />
         </div>
       </div>
 
@@ -49,17 +51,17 @@ export function CollectionScreen() {
       <div className="space-y-1.5">
             <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4">
               <FilterChip active={tierF === 'all'} onClick={() => setTierF('all')}>
-                Всі
+                {t('common.all')}
               </FilterChip>
-              {TIERS.map((t) => (
-                <FilterChip key={t} active={tierF === t} onClick={() => setTierF(t)}>
-                  T{t}
+              {TIERS.map((tid) => (
+                <FilterChip key={tid} active={tierF === tid} onClick={() => setTierF(tid)}>
+                  T{tid}
                 </FilterChip>
               ))}
             </div>
             <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4">
               <FilterChip active={rarityF === 'all'} onClick={() => setRarityF('all')}>
-                Всі
+                {t('common.all')}
               </FilterChip>
               {RARITIES.map((r) => (
                 <FilterChip
@@ -76,7 +78,7 @@ export function CollectionScreen() {
 
       {groups.length === 0 ? (
         <div className="grid place-items-center rounded-3xl border-2 border-dashed border-white/20 bg-farm-card/40 py-12 text-center text-xs text-white/45">
-          Нічого не знайдено за фільтром
+          {t('collection.nothingFound')}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

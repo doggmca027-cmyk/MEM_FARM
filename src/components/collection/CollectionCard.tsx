@@ -4,6 +4,7 @@ import type { CollectionGroup } from '../../store/useGameStore';
 import { characterArtPrompt, MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../lib/meme';
 import { fmtGram, formatNum } from '../../lib/format';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 interface Props {
   group: CollectionGroup;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
+  const t = useT();
   const c = group.sample;
   const hex = RARITY_HEX[c.rarity];
   const canMerge = group.mergeableLevel > 0;
@@ -50,14 +52,14 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
             {MEME_EMOJI[c.memeType]}
           </span>
         </div>
-        <span className="absolute -bottom-1.5 rounded-md border-2 border-black bg-neon-yellow px-1 text-[9px] font-extrabold leading-4 text-black">
+        <span className="absolute -bottom-1.5 rounded-md border-2 border-black bg-neon-yellow px-1 text-[9px] font-extrabold leading-4 text-black dir-ltr">
           Lv. {c.level}
         </span>
       </div>
 
       <div className="relative text-center">
         <div className="truncate font-display text-sm leading-tight text-stroke-sm">{c.name}</div>
-        <div className="mt-0.5 flex items-center justify-center gap-2 text-[10px] font-bold">
+        <div className="mt-0.5 flex items-center justify-center gap-2 text-[10px] font-bold dir-ltr">
           <span className="inline-flex items-center gap-0.5 text-neon-lime">
             <GramIcon className="h-3 w-3" />+{fmtGram(c.currentIncome, 3)}
           </span>
@@ -75,7 +77,7 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
           className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-b-4 border-black border-b-black/40 bg-neon-cyan py-1 text-[10px] font-extrabold uppercase text-black active:translate-y-0.5 active:border-b-2"
         >
           <GraduationCap className="h-3.5 w-3.5" strokeWidth={3} />
-          Вивчити
+          {t('farm.study')}
         </button>
         {canMerge && (
           <button
@@ -83,7 +85,7 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
             className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-b-4 border-black border-b-black/40 bg-neon-purple py-1 text-[10px] font-extrabold uppercase text-white active:translate-y-0.5 active:border-b-2"
           >
             <Layers className="h-3.5 w-3.5" strokeWidth={3} />
-            Злити
+            {t('merge.merge')}
           </button>
         )}
       </div>

@@ -11,23 +11,27 @@ import { fireClaimConfetti } from '../lib/confetti';
 import { haptic } from '../lib/haptics';
 import { GameButton } from '../components/ui/GameButton';
 import { GramIcon } from '../components/icons/Icons';
+import { useT } from '../i18n/useT';
 
-const TIER_META: Record<ReferralTier, { rate: number; label: string; hex: string }> = {
-  1: { rate: 5, label: 'Прямі друзі', hex: '#84CC16' },
-  2: { rate: 2, label: 'Друзі друзів', hex: '#06B6D4' },
-  3: { rate: 1, label: 'Суб-мережа', hex: '#A855F7' },
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+const TIER_META: Record<ReferralTier, { rate: number; labelKey: string; hex: string }> = {
+  1: { rate: 5, labelKey: 'invite.tier1Label', hex: '#84CC16' },
+  2: { rate: 2, labelKey: 'invite.tier2Label', hex: '#06B6D4' },
+  3: { rate: 1, labelKey: 'invite.tier3Label', hex: '#A855F7' },
 };
 
-function ago(ts: number): string {
+function ago(ts: number, t: TFn): string {
   const d = Math.floor((Date.now() - ts) / 86_400_000);
   if (d <= 0) {
     const h = Math.max(1, Math.floor((Date.now() - ts) / 3_600_000));
-    return `${h} год тому`;
+    return t('invite.agoHours', { n: h });
   }
-  return `${d} дн тому`;
+  return t('invite.agoDays', { n: d });
 }
 
 export function InviteScreen() {
+  const t = useT();
   const code = useGameStore((s) => s.referralCode);
   const stats = useGameStore((s) => s.referralStats);
   const friends = useGameStore((s) => s.referralsList);
@@ -46,7 +50,7 @@ export function InviteScreen() {
 
   const share = () => {
     haptic.impact('medium');
-    openTelegramShare(link, 'Заходь на Meme Farm — фарми GRAM з мемами! 🧪 +5% за реєстрацію по цьому лінку');
+    openTelegramShare(link, t('invite.programSub'));
   };
 
   const onClaim = () => {
@@ -70,13 +74,13 @@ export function InviteScreen() {
             L{tier}
           </div>
           <div className="text-[9px] font-extrabold uppercase leading-tight text-white/45">
-            {m.label}
+            {t(m.labelKey)}
           </div>
           <div className="mt-1 inline-block rounded-md border-2 border-black bg-neon-yellow px-1.5 text-[10px] font-extrabold leading-4 text-black">
             {m.rate}%
           </div>
-          <div className="mt-1.5 text-xs font-bold text-white">{count} друзів</div>
-          <div className="inline-flex items-center gap-0.5 text-[11px] font-bold text-neon-lime">
+          <div className="mt-1.5 text-xs font-bold text-white">{t('invite.friendsCount', { n: count })}</div>
+          <div className="inline-flex items-center gap-0.5 text-[11px] font-bold text-neon-lime dir-ltr">
             <GramIcon className="h-3 w-3" />
             {fmtGram(earned)}
           </div>
@@ -96,21 +100,18 @@ export function InviteScreen() {
         <div className="pointer-events-none absolute inset-0 bg-stripes opacity-50" />
         <div className="relative flex items-center gap-2 text-sm font-bold text-white/70">
           <Users className="h-5 w-5 text-neon-cyan" strokeWidth={2.5} />
-          Реферальна програма
+          {t('invite.program')}
         </div>
-        <p className="relative mt-0.5 text-[11px] text-white/50">
-          Отримуй <span className="font-bold text-neon-lime">5% / 2% / 1%</span> з комісій друзів
-          трьох рівнів — назавжди.
-        </p>
+        <p className="relative mt-0.5 text-[11px] text-white/50">{t('invite.programSub')}</p>
 
         <div className="relative mt-3 rounded-2xl border-2 border-black bg-farm-deep p-2.5 text-center">
           <div className="text-[9px] font-extrabold uppercase tracking-widest text-white/40">
-            Твій код
+            {t('invite.yourCode')}
           </div>
-          <div className="font-display text-2xl tracking-[0.2em] text-neon-yellow text-stroke">
+          <div className="font-display text-2xl tracking-[0.2em] text-neon-yellow text-stroke dir-ltr">
             {code}
           </div>
-          <div className="mt-1 truncate text-[10px] text-white/40">
+          <div className="mt-1 truncate text-[10px] text-white/40 dir-ltr">
             t.me/{BOT_USERNAME}?start=ref_{code}
           </div>
         </div>
@@ -119,13 +120,13 @@ export function InviteScreen() {
           <GameButton accent={copied ? 'lime' : 'cyan'} onClick={copy} className="text-xs">
             <span className="inline-flex items-center gap-1.5">
               {copied ? <Check className="h-4 w-4" strokeWidth={3} /> : <Copy className="h-4 w-4" strokeWidth={3} />}
-              {copied ? 'Скопійовано' : 'Скопіювати посилання'}
+              {copied ? t('invite.copied') : t('invite.copyLink')}
             </span>
           </GameButton>
           <GameButton accent="lime" onClick={share} className="text-xs">
             <span className="inline-flex items-center gap-1.5">
               <Share2 className="h-4 w-4" strokeWidth={3} />
-              Поділитися
+              {t('invite.share')}
             </span>
           </GameButton>
         </div>
@@ -137,22 +138,22 @@ export function InviteScreen() {
         <div className="relative flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Доступно до виведення
+              {t('invite.unclaimed')}
             </div>
-            <div className="flex items-center gap-1.5 font-display text-3xl text-neon-yellow text-stroke">
+            <div className="flex items-center gap-1.5 font-display text-3xl text-neon-yellow text-stroke dir-ltr">
               <GramIcon className="h-7 w-7" />
               {fmtGram(stats.unclaimedGram)}
             </div>
           </div>
           <GameButton accent="yellow" disabled={stats.unclaimedGram <= 0} onClick={onClaim}>
-            Забрати нагороду
+            {t('invite.claimReward')}
           </GameButton>
         </div>
       </div>
 
       {/* ===== 3-TIER DASHBOARD ===== */}
       <section>
-        <h2 className="mb-2 font-display text-lg text-stroke">Три лінії</h2>
+        <h2 className="mb-2 font-display text-lg text-stroke">{t('invite.threeLines')}</h2>
         <div className="grid grid-cols-3 gap-2">
           {tierRow(1, stats.l1Count, stats.l1Earned)}
           {tierRow(2, stats.l2Count, stats.l2Earned)}
@@ -160,29 +161,26 @@ export function InviteScreen() {
         </div>
         <div className="mt-2 flex gap-2">
           <div className="flex-1 rounded-2xl border-2 border-black bg-farm-deep px-3 py-2 text-center">
-            <div className="font-display text-xl text-stroke-sm">{totals.invites}</div>
-            <div className="text-[9px] font-extrabold uppercase text-white/40">Всього запрошено</div>
+            <div className="font-display text-xl text-stroke-sm dir-ltr">{totals.invites}</div>
+            <div className="text-[9px] font-extrabold uppercase text-white/40">{t('invite.totalInvited')}</div>
           </div>
           <div className="flex-1 rounded-2xl border-2 border-black bg-farm-deep px-3 py-2 text-center">
-            <div className="inline-flex items-center gap-1 font-display text-xl text-neon-lime text-stroke-sm">
+            <div className="inline-flex items-center gap-1 font-display text-xl text-neon-lime text-stroke-sm dir-ltr">
               <GramIcon className="h-4 w-4" />
               {fmtGram(totals.lifetimeEarned)}
             </div>
-            <div className="text-[9px] font-extrabold uppercase text-white/40">Всього зароблено</div>
+            <div className="text-[9px] font-extrabold uppercase text-white/40">{t('invite.totalEarned')}</div>
           </div>
         </div>
       </section>
 
       {/* ===== FRIENDS LIST ===== */}
       <section>
-        <h2 className="mb-2 font-display text-lg text-stroke">Запрошені друзі</h2>
+        <h2 className="mb-2 font-display text-lg text-stroke">{t('invite.invitedFriends')}</h2>
         {friends.length === 0 ? (
           <div className="grid place-items-center rounded-3xl border-2 border-dashed border-white/20 bg-farm-card/40 px-4 py-10 text-center">
             <div className="text-4xl">🫂</div>
-            <div className="mt-2 max-w-[30ch] text-xs text-white/50">
-              У вас ще немає рефералів. Запросіть першого друга та отримуйте{' '}
-              <span className="font-bold text-neon-lime">5% пасивного доходу</span>!
-            </div>
+            <div className="mt-2 max-w-[30ch] text-xs text-white/50">{t('invite.emptyState')}</div>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -208,9 +206,9 @@ export function InviteScreen() {
                       L{f.tier}
                     </span>
                   </div>
-                  <div className="text-[10px] text-white/40">{ago(f.joinedAt)}</div>
+                  <div className="text-[10px] text-white/40">{ago(f.joinedAt, t)}</div>
                 </div>
-                <div className="relative inline-flex flex-none items-center gap-0.5 font-display text-sm text-neon-lime text-stroke-sm">
+                <div className="relative inline-flex flex-none items-center gap-0.5 font-display text-sm text-neon-lime text-stroke-sm dir-ltr">
                   <GramIcon className="h-3.5 w-3.5" />
                   {fmtGram(f.broughtGram)}
                 </div>

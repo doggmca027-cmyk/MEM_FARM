@@ -2,26 +2,28 @@ import { useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sprout, KeyRound } from 'lucide-react';
 import { haptic } from '../lib/haptics';
+import { useT } from '../i18n/useT';
 import { FarmScreen } from './FarmScreen';
 import { CollectionScreen } from './CollectionScreen';
 
 type View = 'farm' | 'collection';
 
 export function FarmHubScreen() {
+  const t = useT();
   const [view, setView] = useState<View>('farm');
 
   return (
     <div>
       <div className="mb-4 flex gap-2">
         <Seg active={view === 'farm'} onClick={() => setView('farm')} icon={<Sprout className="h-4 w-4" strokeWidth={3} />}>
-          Ферма
+          {t('nav.farm')}
         </Seg>
         <Seg
           active={view === 'collection'}
           onClick={() => setView('collection')}
           icon={<KeyRound className="h-4 w-4" strokeWidth={3} />}
         >
-          Колекція
+          {t('collection.title')}
         </Seg>
       </div>
 

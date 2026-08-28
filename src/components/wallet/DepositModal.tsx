@@ -9,6 +9,7 @@ import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 const QUICK = [1, 4, 8, 16, 32];
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function DepositModal({ open, onClose }: Props) {
+  const t = useT();
   const [tonConnectUI] = useTonConnectUI();
   const address = useTonAddress();
   const profile = useGameStore((s) => s.profile);
@@ -73,7 +75,7 @@ export function DepositModal({ open, onClose }: Props) {
       title={
         <span className="inline-flex items-center gap-2">
           <Wallet className="h-5 w-5 text-neon-lime" strokeWidth={2.5} />
-          Депозит GRAM
+          {t('deposit.title')}
         </span>
       }
     >
@@ -96,7 +98,7 @@ export function DepositModal({ open, onClose }: Props) {
       </div>
 
       <label className="mt-3 block text-[11px] font-bold uppercase tracking-wide text-white/45">
-        Або вкажи суму
+        {t('deposit.orAmount')}
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-2xl border-2 border-black bg-farm-deep px-3 py-2">
         <GramIcon className="h-5 w-5 flex-none" />
@@ -116,19 +118,16 @@ export function DepositModal({ open, onClose }: Props) {
       </div>
 
       <div className="mt-3 rounded-2xl border-2 border-black bg-farm-card/70 p-3 text-[11px] text-white/55">
-        Кошти йдуть на скарбницю{' '}
-        <span className="font-bold text-neon-cyan">{shortAddress(TREASURY_ADDRESS, 6, 4)}</span> з
-        коментарем <span className="font-bold text-white/75">memefarm:deposit</span>. Баланс
-        оновиться після підтвердження мережі.
+        {t('deposit.note', { addr: shortAddress(TREASURY_ADDRESS, 6, 4) })}
       </div>
 
       <div className="mt-4">
         <GameButton accent="lime" block disabled={busy} onClick={onConfirm}>
           {!address
-            ? 'Підключити гаманець'
+            ? t('wallet.connect')
             : busy
-              ? 'Відкриваю гаманець…'
-              : `Поповнити на ${fmtGram(amount)} GRAM`}
+              ? t('deposit.opening')
+              : t('deposit.topUp', { n: fmtGram(amount) })}
         </GameButton>
       </div>
     </Modal>

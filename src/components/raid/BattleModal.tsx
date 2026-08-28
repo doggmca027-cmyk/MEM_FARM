@@ -8,17 +8,20 @@ import { formatNum } from '../../lib/format';
 import { fireClaimConfetti, fireJackpot, firePop } from '../../lib/confetti';
 import { haptic } from '../../lib/haptics';
 import { GameButton } from '../ui/GameButton';
+import { useT } from '../../i18n/useT';
 
 type Stage = 'vs' | 'result';
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
-function rewardText(r: Reward): string {
-  if (r.kind === 'xp') return `⭐ +${r.amount} XP — очки Топ-10`;
+function rewardText(r: Reward, t: TFn): string {
+  if (r.kind === 'xp') return t('battle.xpTop10', { n: r.amount });
   if (r.kind === 'gram') return `+${r.amount} GRAM`;
   if (r.kind === 'tickets') return `+${r.amount} ⚡`;
   return `+${r.amount}`;
 }
 
 export function BattleModal() {
+  const t = useT();
   const battle = useGameStore((s) => s.battle);
   const dismiss = useGameStore((s) => s.dismissBattle);
   const userMeme = useGameStore((s) => {
@@ -66,7 +69,7 @@ export function BattleModal() {
 
             {stage === 'vs' ? (
               <div className="relative flex items-center justify-between">
-                <Fighter emoji={MEME_EMOJI[userMeme]} label="ТИ" power={battle.userPower} from={-40} />
+                <Fighter emoji={MEME_EMOJI[userMeme]} label={t('battle.you')} power={battle.userPower} from={-40} />
                 <motion.div
                   initial={{ scale: 0, rotate: -30 }}
                   animate={{ scale: [0, 1.4, 1], rotate: 0 }}
@@ -100,27 +103,31 @@ export function BattleModal() {
                     battle.won ? 'text-neon-lime' : 'text-neon-pink'
                   }`}
                 >
-                  {battle.won ? 'ПЕРЕМОГА' : 'ПОРАЗКА'}
+                  {battle.won ? t('battle.victory') : t('battle.defeat')}
                 </div>
                 <div className="mt-1 text-xs font-bold text-white/50">
-                  Шанс перемоги був {Math.round(battle.winChance * 100)}%
+                  {t('battle.winChanceWas', { n: Math.round(battle.winChance * 100) })}
                 </div>
 
                 <div className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full border-2 border-black bg-farm-deep px-3 py-1 font-display text-sm text-stroke-sm">
                   <Trophy className="h-4 w-4 text-neon-yellow" strokeWidth={3} />
-                  {battle.ratingDelta >= 0 ? '+' : ''}
-                  {battle.ratingDelta} рейтингу · {battle.newRating}
+                  <span className="dir-ltr">
+                    {t('battle.ratingLine', {
+                      delta: `${battle.ratingDelta >= 0 ? '+' : ''}${battle.ratingDelta}`,
+                      total: battle.newRating,
+                    })}
+                  </span>
                 </div>
 
                 <ul className="mt-3 space-y-1 text-sm font-bold text-neon-lime">
                   {battle.rewards.map((r, i) => (
-                    <li key={i}>{rewardText(r)}</li>
+                    <li key={i}>{rewardText(r, t)}</li>
                   ))}
                 </ul>
 
                 <div className="mt-4">
                   <GameButton accent={battle.won ? 'lime' : 'cyan'} block onClick={dismiss}>
-                    {battle.won ? 'Забрати' : 'Реванш'}
+                    {battle.won ? t('common.take') : t('battle.rematch')}
                   </GameButton>
                 </div>
               </motion.div>

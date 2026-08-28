@@ -14,8 +14,10 @@ import { TierSlotRow } from '../components/farm/TierSlotRow';
 import { CollectionStrip } from '../components/farm/CollectionStrip';
 import { StudyModal } from '../components/farm/StudyModal';
 import { GachaRevealModal } from '../components/farm/GachaRevealModal';
+import { useT } from '../i18n/useT';
 
 export function FarmScreen() {
+  const t = useT();
   const farm = useGameStore((s) => s.farm);
   const tiers = useGameStore((s) => s.tiers);
   const incomePerDay = useGameStore((s) => s.incomePerDay);
@@ -75,7 +77,7 @@ export function FarmScreen() {
 
         <div className="relative flex items-start justify-between">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">Накопичено</div>
+            <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">{t('farm.accrued')}</div>
             <motion.div
               key={Math.floor(farm.claimableGram * 1000)}
               initial={{ scale: 0.97 }}
@@ -83,18 +85,18 @@ export function FarmScreen() {
               className="flex items-center gap-1.5 font-display text-3xl text-neon-yellow text-stroke"
             >
               <GramIcon className="h-7 w-7" />
-              {fmtGram(farm.claimableGram, 3)}
+              <span className="dir-ltr">{fmtGram(farm.claimableGram, 3)}</span>
             </motion.div>
-            <div className="mt-0.5 text-[11px] font-semibold text-neon-lime">
-              +{fmtGram(incomePerDay, 3)} GRAM / день
+            <div className="mt-0.5 text-[11px] font-semibold text-neon-lime dir-ltr">
+              {t('farm.incomePerDay', { n: fmtGram(incomePerDay, 3) })}
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">
-              {done ? 'Готово!' : '8-год цикл'}
+              {done ? t('farm.ready') : t('farm.cycle8h')}
             </div>
-            <div className="font-display text-2xl tabular-nums text-stroke">{label}</div>
+            <div className="font-display text-2xl tabular-nums text-stroke dir-ltr">{label}</div>
           </div>
         </div>
 
@@ -113,7 +115,7 @@ export function FarmScreen() {
           >
             <span className="inline-flex items-center gap-1.5">
               <Swords className="h-4 w-4" strokeWidth={3} />
-              Переслідувати
+              {t('farm.hunt')}
             </span>
           </GameButton>
           <GameButton
@@ -126,14 +128,16 @@ export function FarmScreen() {
           >
             <span className="inline-flex items-center gap-1.5">
               <GraduationCap className="h-4 w-4" strokeWidth={3} />
-              Вивчити
+              {t('farm.study')}
             </span>
           </GameButton>
         </div>
 
         <div className="relative mt-2">
           <GameButton accent="yellow" block disabled={!canClaim} onClick={onClaim}>
-            {farm.claimableGram > 0 ? `Зібрати ${fmtGram(farm.claimableGram, 3)} GRAM` : 'Нічого збирати'}
+            {farm.claimableGram > 0
+              ? t('farm.collect', { n: fmtGram(farm.claimableGram, 3) })
+              : t('farm.nothingToCollect')}
           </GameButton>
         </div>
       </motion.div>
@@ -141,8 +145,8 @@ export function FarmScreen() {
       {/* ================= TIER LIST ================= */}
       <section>
         <div className="mb-2 flex items-end justify-between">
-          <h2 className="font-display text-lg text-stroke">Тіри ферми</h2>
-          <span className="text-xs font-bold text-white/40">6 тірів · Gacha</span>
+          <h2 className="font-display text-lg text-stroke">{t('farm.tiersTitle')}</h2>
+          <span className="text-xs font-bold text-white/40">{t('farm.tiersSub')}</span>
         </div>
         <div className="space-y-3">
           {tiers.map((row, i) => (

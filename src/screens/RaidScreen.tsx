@@ -9,8 +9,10 @@ import { fmtHMS, formatNum } from '../lib/format';
 import { haptic } from '../lib/haptics';
 import { GameButton } from '../components/ui/GameButton';
 import { BattleModal } from '../components/raid/BattleModal';
+import { useT } from '../i18n/useT';
 
 export function RaidScreen() {
+  const t = useT();
   const farmPower = useGameStore(selectFarmPower);
   const raidTickets = useGameStore((s) => s.raidTickets);
   const lastTicketRefillAt = useGameStore((s) => s.lastTicketRefillAt);
@@ -57,13 +59,13 @@ export function RaidScreen() {
   const leaders = useMemo(() => {
     const rows = [
       ...LEADERBOARD.map((r) => ({ ...r, self: false })),
-      { name: 'Ти', memeType: userMeme, rating: pvpRating, power: farmPower, xp, self: true },
+      { name: t('battle.you'), memeType: userMeme, rating: pvpRating, power: farmPower, xp, self: true },
     ];
     return rows
       .sort((a, b) => (metric === 'xp' ? b.xp - a.xp : b.power - a.power))
       .slice(0, 10)
       .map((r, i) => ({ ...r, place: i + 1 }));
-  }, [userMeme, pvpRating, farmPower, xp, metric]);
+  }, [userMeme, pvpRating, farmPower, xp, metric, t]);
 
   return (
     <div className="space-y-5">
@@ -73,23 +75,25 @@ export function RaidScreen() {
         <div className="relative flex items-center justify-between">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Сила ферми
+              {t('raid.farmPower')}
             </div>
             <div className="flex items-center gap-1.5 font-display text-3xl text-stroke">
               <Zap className="h-6 w-6 text-neon-cyan" strokeWidth={2.5} />
-              {formatNum(farmPower)}
+              <span className="dir-ltr">{formatNum(farmPower)}</span>
             </div>
-            <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-neon-yellow">
+            <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-neon-yellow dir-ltr">
               <Trophy className="h-3.5 w-3.5" strokeWidth={3} />
               {pvpRating} PvP
             </div>
           </div>
           <div className="text-right">
-            <div className="font-display text-2xl text-stroke">
+            <div className="font-display text-2xl text-stroke dir-ltr">
               ⚡ {raidTickets}/{MAX_RAID_TICKETS}
             </div>
             <div className="text-[11px] font-semibold text-white/45">
-              {raidTickets >= MAX_RAID_TICKETS ? 'повний запас' : `+1 через ${fmtHMS(nextTicketMs)}`}
+              {raidTickets >= MAX_RAID_TICKETS
+                ? t('raid.ticketsFull')
+                : t('raid.ticketIn', { t: fmtHMS(nextTicketMs) })}
             </div>
           </div>
         </div>
@@ -109,7 +113,7 @@ export function RaidScreen() {
               sub === k ? 'border-b-black/40 bg-neon-lime text-black' : 'border-b-black/40 bg-farm-card text-white/50',
             ].join(' ')}
           >
-            {k === 'arena' ? 'Арена' : 'Лідери'}
+            {k === 'arena' ? t('raid.arena') : t('raid.leaders')}
           </button>
         ))}
       </div>
@@ -131,14 +135,14 @@ export function RaidScreen() {
               <div className="truncate font-display text-lg text-stroke-sm">{opp.name}</div>
               <div className="mt-0.5 inline-flex items-center gap-1 text-xs font-bold text-neon-cyan">
                 <Shield className="h-3.5 w-3.5" strokeWidth={3} />
-                Сила {formatNum(opp.power)}
+                <span className="dir-ltr">{t('raid.power', { n: formatNum(opp.power) })}</span>
               </div>
             </div>
             <div className="flex-none text-right">
-              <div className="font-display text-2xl text-neon-lime text-stroke-sm">
+              <div className="font-display text-2xl text-neon-lime text-stroke-sm dir-ltr">
                 {Math.round(winChance * 100)}%
               </div>
-              <div className="text-[9px] font-bold uppercase text-white/40">шанс</div>
+              <div className="text-[9px] font-bold uppercase text-white/40">{t('raid.chance')}</div>
             </div>
           </div>
 
@@ -151,13 +155,13 @@ export function RaidScreen() {
             <GameButton accent="cyan" onClick={reroll} className="text-xs">
               <span className="inline-flex items-center gap-1.5">
                 <RefreshCw className="h-4 w-4" strokeWidth={3} />
-                Знайти іншого
+                {t('raid.findAnother')}
               </span>
             </GameButton>
             <GameButton accent="pink" block disabled={raidTickets <= 0} onClick={attack}>
               <span className="inline-flex items-center gap-1.5">
                 <Swords className="h-4 w-4" strokeWidth={3} />
-                Атакувати · ⚡1
+                {t('raid.attack')}
               </span>
             </GameButton>
           </div>
@@ -176,7 +180,7 @@ export function RaidScreen() {
               ].join(' ')}
             >
               <Zap className="h-3.5 w-3.5" strokeWidth={3} />
-              Топ за Силою
+              {t('raid.topByPower')}
             </button>
             <button
               onClick={() => {
@@ -189,7 +193,7 @@ export function RaidScreen() {
               ].join(' ')}
             >
               <Star className="h-3.5 w-3.5" strokeWidth={3} />
-              Топ за Досвідом
+              {t('raid.topByXp')}
             </button>
           </div>
 
@@ -210,12 +214,12 @@ export function RaidScreen() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-bold">{r.name}</div>
-                  <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-neon-yellow">
+                  <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-neon-yellow dir-ltr">
                     <Star className="h-3 w-3 fill-neon-yellow" strokeWidth={2.5} />
                     {formatNum(r.xp)} XP
                   </div>
                 </div>
-                <span className="inline-flex flex-none items-center gap-1 font-display text-sm text-neon-cyan text-stroke-sm">
+                <span className="inline-flex flex-none items-center gap-1 font-display text-sm text-neon-cyan text-stroke-sm dir-ltr">
                   {metric === 'xp' ? (
                     <>
                       <Star className="h-3.5 w-3.5" strokeWidth={3} />

@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { initTelegram } from './telegram/telegram';
 import { authenticateWithTelegram } from './services/auth';
 import { useGameStore } from './store/useGameStore';
+import { applyDir } from './i18n';
 
 const manifestUrl =
   typeof window !== 'undefined'
@@ -12,6 +13,12 @@ const manifestUrl =
 
 export default function App() {
   const hydrate = useGameStore((s) => s.hydrate);
+  const lang = useGameStore((s) => s.lang);
+
+  // Keep <html dir/lang> in sync with the active language (RTL for ar/fa).
+  useEffect(() => {
+    applyDir(lang);
+  }, [lang]);
 
   useEffect(() => {
     initTelegram();
@@ -24,7 +31,10 @@ export default function App() {
   }, [hydrate]);
 
   return (
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
+    <TonConnectUIProvider
+      manifestUrl={manifestUrl}
+      language={lang === 'ru' ? 'ru' : 'en'}
+    >
       <AppLayout />
     </TonConnectUIProvider>
   );

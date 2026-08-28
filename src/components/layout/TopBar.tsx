@@ -5,16 +5,10 @@ import { fmtGram, formatNum } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
 import { GramIcon } from '../icons/Icons';
 import { Chip } from '../ui/Chip';
-
-const TAB_TITLE: Record<string, string> = {
-  quests: 'Daily Quests',
-  farm: 'Your Meme Farm',
-  raid: 'Meme Raid',
-  invite: 'Invite Frens',
-  wallet: 'GRAM Wallet',
-};
+import { useT } from '../../i18n/useT';
 
 export function TopBar({ level = 7 }: { level?: number }) {
+  const t = useT();
   const balanceGram = useGameStore((s) => s.balanceGram);
   const incomePerDay = useGameStore((s) => s.incomePerDay);
   const xp = useGameStore((s) => s.xp);
@@ -31,13 +25,13 @@ export function TopBar({ level = 7 }: { level?: number }) {
             {level}
           </div>
           <Chip icon={<GramIcon className="h-4 w-4" />} className="bg-farm-card text-neon-cyan">
-            {fmtGram(balanceGram)}
+            <span className="dir-ltr">{fmtGram(balanceGram)}</span>
           </Chip>
           <Chip
             icon={<Star className="h-3.5 w-3.5 fill-neon-yellow" strokeWidth={2.5} />}
             className="bg-farm-card text-neon-yellow"
           >
-            {formatNum(xp)} XP
+            <span className="dir-ltr">{formatNum(xp)} XP</span>
           </Chip>
         </div>
 
@@ -47,7 +41,7 @@ export function TopBar({ level = 7 }: { level?: number }) {
               haptic.select();
               setSettingsOpen(true);
             }}
-            aria-label="Налаштування"
+            aria-label={t('settings.title')}
             className="grid h-9 w-9 place-items-center rounded-xl border-2 border-black border-b-4 border-b-black/40 bg-farm-card text-white/70 active:translate-y-0.5"
           >
             <Settings className="h-4 w-4" strokeWidth={2.75} />
@@ -58,19 +52,21 @@ export function TopBar({ level = 7 }: { level?: number }) {
                 haptic.impact('medium');
                 setAdminOpen(true);
               }}
-              aria-label="Адмін-панель"
+              aria-label="Admin"
               className="grid h-9 w-9 place-items-center rounded-xl border-2 border-black border-b-4 border-b-black/40 bg-neon-yellow text-black active:translate-y-0.5"
             >
               <Crown className="h-4 w-4" strokeWidth={3} />
             </button>
           )}
-          <Chip className="bg-farm-card text-neon-lime">+{fmtGram(incomePerDay, 3)}/d</Chip>
+          <Chip className="bg-farm-card text-neon-lime">
+            <span className="dir-ltr">+{fmtGram(incomePerDay, 3)}/d</span>
+          </Chip>
           <TonConnectButton />
         </div>
       </div>
 
       <h1 className="mt-2 font-display text-xl leading-none text-stroke">
-        {TAB_TITLE[activeTab] ?? 'Meme Farm'}
+        {t(`tabTitle.${activeTab}`)}
       </h1>
     </header>
   );

@@ -15,6 +15,7 @@ import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function StudyModal({ open, onClose, characterId = null }: Props) {
+  const t = useT();
   const tiers = useGameStore((s) => s.tiers);
   const balanceGram = useGameStore((s) => s.balanceGram);
   const upgradeCharacter = useGameStore((s) => s.upgradeCharacter);
@@ -65,7 +67,7 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
       title={
         <span className="inline-flex items-center gap-2">
           <GraduationCap className="h-5 w-5 text-neon-cyan" strokeWidth={2.5} />
-          Вивчити
+          {t('study.title')}
         </span>
       }
     >
@@ -91,7 +93,9 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
               >
                 {MEME_EMOJI[c.memeType]}
               </span>
-              <span className="text-[10px] font-extrabold leading-none">Lvl {c.level}</span>
+              <span className="text-[10px] font-extrabold leading-none dir-ltr">
+                {t('study.lvl', { n: c.level })}
+              </span>
             </button>
           );
         })}
@@ -124,34 +128,34 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
           {/* now -> next: income */}
           <div className="mt-3 flex items-center gap-3">
             <StatBlock
-              label={`Дохід · Lvl ${selected.level}`}
+              label={t('study.incomeAt', { n: selected.level })}
               value={`${fmtGram(selected.currentIncome, 3)} /d`}
             />
             <ArrowRight className="h-5 w-5 flex-none text-neon-lime" strokeWidth={3} />
-            <StatBlock label={`Lvl ${selected.level + 1}`} value={`${fmtGram(nextIncome, 3)} /d`} highlight />
+            <StatBlock label={t('study.lvl', { n: selected.level + 1 })} value={`${fmtGram(nextIncome, 3)} /d`} highlight />
           </div>
 
           {/* now -> next: power */}
           <div className="mt-2 flex items-center gap-3">
-            <StatBlock label="Сила (PvP)" value={formatNum(selected.power)} />
+            <StatBlock label={t('study.power')} value={formatNum(selected.power)} />
             <ArrowRight className="h-5 w-5 flex-none text-neon-lime" strokeWidth={3} />
-            <StatBlock label="Після" value={formatNum(nextPower)} highlight />
+            <StatBlock label={t('study.after')} value={formatNum(nextPower)} highlight />
           </div>
 
           {/* cost + action */}
           <div className="mt-4 flex items-center justify-between">
             <div className="inline-flex items-center gap-1 text-xs font-bold text-white/60">
-              Вартість:
+              {t('study.cost')}
               <span className={canAfford ? 'text-neon-yellow' : 'text-neon-pink'}>
                 <GramIcon className="mb-0.5 mr-0.5 inline h-3.5 w-3.5" />
-                {fmtGram(fee, 3)}
+                <span className="dir-ltr">{fmtGram(fee, 3)}</span>
               </span>
-              <span className="text-white/35">· баланс {fmtGram(balanceGram)}</span>
+              <span className="text-white/35 dir-ltr">· {t('study.balance', { n: fmtGram(balanceGram) })}</span>
             </div>
             <GameButton accent="lime" disabled={!canAfford} onClick={doUpgrade}>
               <span className="inline-flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4" strokeWidth={3} />
-                Покращити
+                {t('study.improve')}
               </span>
             </GameButton>
           </div>

@@ -13,6 +13,7 @@ import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 interface Props {
   open: boolean;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function WithdrawModal({ open, onClose }: Props) {
+  const t = useT();
   const connected = useTonAddress();
   const balanceGram = useGameStore((s) => s.balanceGram);
   const lastWithdrawAt = useGameStore((s) => s.lastWithdrawAt);
@@ -49,11 +51,11 @@ export function WithdrawModal({ open, onClose }: Props) {
     lastWithdrawAt != null ? Math.max(0, lastWithdrawAt + WITHDRAW_COOLDOWN_MS - now) : 0;
 
   let error: string | null = null;
-  if (raw && !amountValid) error = 'Некоректна сума';
-  else if (amountValid && amount < WITHDRAW_MIN) error = `Мінімум ${fmtGram(WITHDRAW_MIN)} GRAM`;
-  else if (amountValid && amount > balanceGram) error = 'Недостатньо коштів';
-  else if (address.trim().length < 40) error = 'Вкажіть коректну адресу гаманця';
-  else if (cooldownLeft > 0) error = `Наступний вивід через ${fmtHMS(cooldownLeft)}`;
+  if (raw && !amountValid) error = t('withdraw.errBadAmount');
+  else if (amountValid && amount < WITHDRAW_MIN) error = t('withdraw.errMin', { n: fmtGram(WITHDRAW_MIN) });
+  else if (amountValid && amount > balanceGram) error = t('withdraw.errInsufficient');
+  else if (address.trim().length < 40) error = t('withdraw.errAddress');
+  else if (cooldownLeft > 0) error = t('withdraw.errCooldown', { t: fmtHMS(cooldownLeft) });
 
   const canSubmit = amountValid && !error;
 
@@ -74,18 +76,19 @@ export function WithdrawModal({ open, onClose }: Props) {
       title={
         <span className="inline-flex items-center gap-2">
           <ArrowUpFromLine className="h-5 w-5 text-neon-cyan" strokeWidth={2.5} />
-          Вивід GRAM
+          {t('withdraw.title')}
         </span>
       }
     >
       <label className="block text-[11px] font-bold uppercase tracking-wide text-white/45">
-        Адреса гаманця
+        {t('withdraw.address')}
       </label>
       <input
         value={address}
         onChange={(e) => setAddress(e.target.value)}
         placeholder="UQ… / EQ…"
         spellCheck={false}
+        dir="ltr"
         className="mt-1 w-full rounded-2xl border-2 border-black bg-farm-deep px-3 py-2 text-sm text-white outline-none placeholder:text-white/30"
       />
       {connected && address !== connected && (
@@ -93,12 +96,12 @@ export function WithdrawModal({ open, onClose }: Props) {
           onClick={() => setAddress(connected)}
           className="mt-1 text-[11px] font-bold text-neon-cyan underline"
         >
-          Підставити підключений гаманець
+          {t('withdraw.useConnected')}
         </button>
       )}
 
       <label className="mt-3 block text-[11px] font-bold uppercase tracking-wide text-white/45">
-        Сума
+        {t('withdraw.amount')}
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-2xl border-2 border-black bg-farm-deep px-3 py-2">
         <GramIcon className="h-5 w-5 flex-none" />
@@ -119,18 +122,18 @@ export function WithdrawModal({ open, onClose }: Props) {
           MAX
         </button>
       </div>
-      <div className="mt-1 text-[11px] text-white/40">
-        Доступно: {fmtGram(balanceGram)} GRAM
+      <div className="mt-1 text-[11px] text-white/40 dir-ltr">
+        {t('withdraw.available', { n: fmtGram(balanceGram) })}
       </div>
 
       {/* breakdown */}
       <div className="mt-3 grid grid-cols-3 gap-2 rounded-2xl border-2 border-black bg-farm-card/70 p-2.5 text-center">
-        <Cell label="Сума" value={fmtGram(amountValid ? amount : 0)} />
-        <Cell label="Комісія" value={fmtGram(fee)} tone="text-neon-pink" />
-        <Cell label="Отримаєте" value={fmtGram(net)} tone="text-neon-lime" />
+        <Cell label={t('withdraw.sum')} value={fmtGram(amountValid ? amount : 0)} />
+        <Cell label={t('withdraw.fee')} value={fmtGram(fee)} tone="text-neon-pink" />
+        <Cell label={t('withdraw.youGet')} value={fmtGram(net)} tone="text-neon-lime" />
       </div>
       <div className="mt-1 text-[10px] text-white/35">
-        Комісія: max({fmtGram(0.01)}, сума × 2%) · мін. вивід {fmtGram(WITHDRAW_MIN)} · 1 вивід / 24 год
+        {t('withdraw.feeNote', { min: fmtGram(0.01), minw: fmtGram(WITHDRAW_MIN) })}
       </div>
 
       {error && (
@@ -141,7 +144,7 @@ export function WithdrawModal({ open, onClose }: Props) {
 
       <div className="mt-4">
         <GameButton accent="cyan" block disabled={!canSubmit} onClick={onConfirm}>
-          Вивести {fmtGram(net)} GRAM
+          {t('withdraw.submit', { n: fmtGram(net) })}
         </GameButton>
       </div>
     </Modal>
@@ -152,7 +155,7 @@ function Cell({ label, value, tone = 'text-white' }: { label: string; value: str
   return (
     <div>
       <div className="text-[9px] font-extrabold uppercase tracking-wide text-white/40">{label}</div>
-      <div className={`font-display text-sm text-stroke-sm ${tone}`}>{value}</div>
+      <div className={`font-display text-sm text-stroke-sm dir-ltr ${tone}`}>{value}</div>
     </div>
   );
 }

@@ -63,24 +63,152 @@ function prefsAllow(prefs: Record<string, unknown> | null, type: NotifType): boo
   return prefs?.[PREF_KEY[type]] !== false;
 }
 
-function buildMessage(type: NotifType, meta: Record<string, unknown>): { text: string; button: string } {
-  switch (type) {
-    case 'FARM_READY':
-      return {
-        text: '🌾 *Твоя ферма готова до збору!*\n\nНакопичено максимум GRAM. Заходь забрати свій прибуток!',
-        button: '🌾 Забрати',
-      };
-    case 'REFERRAL_INCOME':
-      return {
-        text: `💸 *Реферальний дохід!*\n\nТобі нараховано \`${meta.amount ?? '?'}\` GRAM (L${meta.level ?? '?'}). Забери на вкладці «Frens».`,
-        button: '💸 Відкрити',
-      };
-    case 'PVP_ATTACK':
-      return {
-        text: '⚔️ *На тебе напали в рейді!*\n\nСуперник переміг у набігу. Час на реванш!',
-        button: '⚔️ У бій',
-      };
-  }
+type Lang = 'uk' | 'en' | 'ru' | 'kk' | 'id' | 'es' | 'tr' | 'ar' | 'fa';
+
+/** Per-language push templates. `{amount}` / `{level}` are interpolated. Missing langs fall back to `uk`. */
+const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }>> = {
+  uk: {
+    FARM_READY: {
+      text: '🌾 *Твоя ферма готова до збору!*\n\nНакопичено максимум GRAM. Заходь забрати свій прибуток!',
+      button: '🌾 Забрати',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Реферальний дохід!*\n\nТобі нараховано `{amount}` GRAM (L{level}). Забери на вкладці «Frens».',
+      button: '💸 Відкрити',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *На тебе напали в рейді!*\n\nСуперник переміг у набігу. Час на реванш!',
+      button: '⚔️ У бій',
+    },
+  },
+  en: {
+    FARM_READY: {
+      text: '🌾 *Your farm is ready to harvest!*\n\nGRAM has maxed out. Come claim your income!',
+      button: '🌾 Claim',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Referral income!*\n\nYou earned `{amount}` GRAM (L{level}). Claim it on the “Frens” tab.',
+      button: '💸 Open',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *You were raided!*\n\nAn opponent beat you in a raid. Time for a rematch!',
+      button: '⚔️ Fight',
+    },
+  },
+  ru: {
+    FARM_READY: {
+      text: '🌾 *Твоя ферма готова к сбору!*\n\nНакопился максимум GRAM. Заходи забрать доход!',
+      button: '🌾 Забрать',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Реферальный доход!*\n\nТебе начислено `{amount}` GRAM (L{level}). Забери на вкладке «Frens».',
+      button: '💸 Открыть',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *На тебя напали в рейде!*\n\nСоперник победил в набеге. Время для реванша!',
+      button: '⚔️ В бой',
+    },
+  },
+  kk: {
+    FARM_READY: {
+      text: '🌾 *Фермаң жинауға дайын!*\n\nGRAM максимумға жетті. Кіріп табысыңды ал!',
+      button: '🌾 Жинау',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Реферал табысы!*\n\nСаған `{amount}` GRAM (L{level}) есептелді. «Frens» қойындысынан ал.',
+      button: '💸 Ашу',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *Рейдте саған шабуыл жасалды!*\n\nҚарсылас жеңіп кетті. Реванш кезі!',
+      button: '⚔️ Шайқасқа',
+    },
+  },
+  id: {
+    FARM_READY: {
+      text: '🌾 *Farm kamu siap dipanen!*\n\nGRAM sudah maksimal. Ambil pendapatanmu!',
+      button: '🌾 Ambil',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Pendapatan referral!*\n\nKamu memperoleh `{amount}` GRAM (L{level}). Ambil di tab “Frens”.',
+      button: '💸 Buka',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *Kamu diserang di raid!*\n\nLawan mengalahkanmu. Saatnya tanding ulang!',
+      button: '⚔️ Bertarung',
+    },
+  },
+  es: {
+    FARM_READY: {
+      text: '🌾 *¡Tu granja está lista para cosechar!*\n\nEl GRAM llegó al máximo. ¡Ven a reclamar tus ingresos!',
+      button: '🌾 Reclamar',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *¡Ingresos por referidos!*\n\nGanaste `{amount}` GRAM (L{level}). Reclámalos en la pestaña «Frens».',
+      button: '💸 Abrir',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *¡Te asaltaron en un raid!*\n\nUn rival te venció. ¡Hora de la revancha!',
+      button: '⚔️ Luchar',
+    },
+  },
+  tr: {
+    FARM_READY: {
+      text: '🌾 *Çiftliğin hasada hazır!*\n\nGRAM maksimuma ulaştı. Gel gelirini al!',
+      button: '🌾 Al',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *Referans geliri!*\n\n`{amount}` GRAM (L{level}) kazandın. “Frens” sekmesinden al.',
+      button: '💸 Aç',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *Bir akında saldırıya uğradın!*\n\nBir rakip seni yendi. Rövanş zamanı!',
+      button: '⚔️ Savaş',
+    },
+  },
+  ar: {
+    FARM_READY: {
+      text: '🌾 *مزرعتك جاهزة للحصاد!*\n\nبلغ GRAM حدّه الأقصى. تعال واستلم دخلك!',
+      button: '🌾 استلام',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *دخل الإحالة!*\n\nحصلت على `{amount}` GRAM (المستوى {level}). استلمه من تبويب «Frens».',
+      button: '💸 فتح',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *تعرّضت لهجوم في الغارة!*\n\nهزمك خصم في غارة. حان وقت الثأر!',
+      button: '⚔️ قتال',
+    },
+  },
+  fa: {
+    FARM_READY: {
+      text: '🌾 *مزرعه‌ات آمادهٔ برداشت است!*\n\nGRAM به سقف رسید. بیا و درآمدت را بگیر!',
+      button: '🌾 دریافت',
+    },
+    REFERRAL_INCOME: {
+      text: '💸 *درآمد معرفی!*\n\n`{amount}` GRAM (سطح {level}) کسب کردی. از تب «Frens» دریافت کن.',
+      button: '💸 باز کردن',
+    },
+    PVP_ATTACK: {
+      text: '⚔️ *در یک یورش به تو حمله شد!*\n\nحریفی تو را شکست داد. وقت انتقام است!',
+      button: '⚔️ نبرد',
+    },
+  },
+};
+
+function pickLang(v: unknown): Lang {
+  return typeof v === 'string' && v in TEMPLATES ? (v as Lang) : 'uk';
+}
+
+function buildMessage(
+  type: NotifType,
+  meta: Record<string, unknown>,
+  lang: Lang = 'uk',
+): { text: string; button: string } {
+  const tpl = TEMPLATES[lang]?.[type] ?? TEMPLATES.uk[type];
+  const text = tpl.text
+    .replace(/\{amount\}/g, String(meta.amount ?? '?'))
+    .replace(/\{level\}/g, String(meta.level ?? '?'));
+  return { text, button: tpl.button };
 }
 
 async function sendTelegram(chatId: number | string, text: string, button: string): Promise<boolean> {
@@ -121,7 +249,8 @@ Deno.serve(async (req) => {
 
   // ---------- EVENT MODE ----------
   if (body.type && body.telegram_id) {
-    const { text, button } = buildMessage(body.type, body.metadata ?? {});
+    const meta = body.metadata ?? {};
+    const { text, button } = buildMessage(body.type, meta, pickLang(meta.lang));
     const ok = await sendTelegram(body.telegram_id, text, button);
     return json({ mode: 'event', sent: ok });
   }
@@ -146,7 +275,9 @@ Deno.serve(async (req) => {
     let ok = false;
 
     if (prof?.telegram_id && prefsAllow(prof.notif_prefs, type)) {
-      const { text, button } = buildMessage(type, ((e as Record<string, unknown>).metadata as Record<string, unknown>) ?? {});
+      const meta = ((e as Record<string, unknown>).metadata as Record<string, unknown>) ?? {};
+      const lang = pickLang(meta.lang ?? prof.notif_prefs?.lang);
+      const { text, button } = buildMessage(type, meta, lang);
       ok = await sendTelegram(prof.telegram_id, text, button);
       await db.from('notification_logs').insert({ user_id: uid, type, status: ok ? 'SENT' : 'FAILED' });
       if (ok) processed += 1;
@@ -168,7 +299,7 @@ Deno.serve(async (req) => {
     const uid = (f as Record<string, unknown>).user_id as string;
 
     if (prof?.telegram_id && prefsAllow(prof.notif_prefs, 'FARM_READY')) {
-      const { text, button } = buildMessage('FARM_READY', {});
+      const { text, button } = buildMessage('FARM_READY', {}, pickLang(prof.notif_prefs?.lang));
       const ok = await sendTelegram(prof.telegram_id, text, button);
       await db.from('notification_logs').insert({ user_id: uid, type: 'FARM_READY', status: ok ? 'SENT' : 'FAILED' });
       if (ok) farmNotified += 1;

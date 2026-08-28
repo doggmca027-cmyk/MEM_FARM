@@ -15,6 +15,7 @@ import { haptic } from '../lib/haptics';
 import { GameButton } from '../components/ui/GameButton';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { GramIcon } from '../components/icons/Icons';
+import { useT } from '../i18n/useT';
 
 function rewardChip(r: Reward): { icon: ReactNode; text: string } {
   switch (r.kind) {
@@ -25,15 +26,16 @@ function rewardChip(r: Reward): { icon: ReactNode; text: string } {
     case 'tickets':
       return { icon: <span className="text-[10px]">⚡</span>, text: `×${r.amount}` };
     case 'case':
-      return { icon: <Gift className="h-3 w-3" strokeWidth={3} />, text: 'Кейс' };
+      return { icon: <Gift className="h-3 w-3" strokeWidth={3} />, text: '📦' };
     case 'buff':
-      return { icon: <Flame className="h-3 w-3" strokeWidth={3} />, text: `+${r.amount}% / 24г` };
+      return { icon: <Flame className="h-3 w-3" strokeWidth={3} />, text: `+${r.amount}% / 24h` };
     default:
       return { icon: null, text: '' };
   }
 }
 
 export function QuestsScreen() {
+  const t = useT();
   const streakDay = useGameStore((s) => s.streakDay);
   const quests = useGameStore((s) => s.quests);
   const dailyChestClaimed = useGameStore((s) => s.dailyChestClaimed);
@@ -79,9 +81,9 @@ export function QuestsScreen() {
         <div className="relative flex items-start justify-between">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Щоденний стрік
+              {t('quests.streakTitle')}
             </div>
-            <div className="flex items-center gap-2 font-display text-3xl text-stroke">
+            <div className="flex items-center gap-2 font-display text-3xl text-stroke dir-ltr">
               <Flame className="h-7 w-7 text-neon-pink" strokeWidth={2.5} />
               {streakDay} / 7
             </div>
@@ -89,10 +91,10 @@ export function QuestsScreen() {
           <div className="text-right">
             <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-white/50">
               <CalendarDays className="h-3.5 w-3.5" strokeWidth={3} />
-              {canCheckIn ? 'Чекін' : 'Наступний'}
+              {canCheckIn ? t('quests.checkin') : t('quests.next')}
             </div>
-            <div className="font-display text-lg tabular-nums text-stroke-sm">
-              {canCheckIn ? 'зараз' : fmtHMS(msLeft)}
+            <div className="font-display text-lg tabular-nums text-stroke-sm dir-ltr">
+              {canCheckIn ? t('quests.now') : fmtHMS(msLeft)}
             </div>
           </div>
         </div>
@@ -113,7 +115,7 @@ export function QuestsScreen() {
                 ].join(' ')}
               >
                 <span className="text-[9px] font-extrabold uppercase text-white/45">
-                  {d.isSuper ? 'СУПЕР' : `Д${d.day}`}
+                  {d.isSuper ? t('quests.superDay') : `D${d.day}`}
                 </span>
                 <span className="text-base leading-none">
                   {claimed ? '✅' : d.isSuper ? '🎁' : current ? '🎯' : '🔒'}
@@ -128,7 +130,7 @@ export function QuestsScreen() {
 
         <div className="relative mt-3">
           <GameButton accent="yellow" block disabled={!canCheckIn} onClick={onCheckIn}>
-            {canCheckIn ? 'Забрати щоденну нагороду' : `Вже отримано · ${fmtHMS(msLeft)}`}
+            {canCheckIn ? t('quests.claimDaily') : t('quests.alreadyGot', { t: fmtHMS(msLeft) })}
           </GameButton>
         </div>
       </motion.div>
@@ -136,9 +138,9 @@ export function QuestsScreen() {
       {/* ===== DAILY QUESTS ===== */}
       <section>
         <div className="mb-2 flex items-end justify-between">
-          <h2 className="font-display text-lg text-stroke">Щоденні завдання</h2>
+          <h2 className="font-display text-lg text-stroke">{t('quests.dailyTasks')}</h2>
           <span className="text-xs font-bold text-white/45">
-            {progress.done}/{progress.total} виконано
+            {t('quests.doneCount', { done: progress.done, total: progress.total })}
           </span>
         </div>
 
@@ -165,7 +167,7 @@ export function QuestsScreen() {
                   )}
                   <div className="min-w-0 flex-1">
                     <div className={`text-sm font-bold ${q.claimed ? 'text-white/40 line-through' : ''}`}>
-                      {q.label}{' '}
+                      {t(`quests.q_${q.id}`)}{' '}
                       <span className="text-white/35">
                         ({Math.min(q.progress, q.goal)}/{q.goal})
                       </span>
@@ -192,7 +194,7 @@ export function QuestsScreen() {
                         q.claimed ? 'bg-farm-deep text-neon-lime' : 'bg-neon-lime text-black',
                       ].join(' ')}
                     >
-                      {q.claimed ? 'Отримано' : 'Забрати'}
+                      {q.claimed ? t('quests.reward') : t('quests.claimReward')}
                     </button>
                   </div>
                 </div>
@@ -215,8 +217,8 @@ export function QuestsScreen() {
               <Lock className="h-6 w-6 text-white/35" strokeWidth={2.5} />
             )}
             <div>
-              <div className="font-display text-sm text-stroke-sm">Бонусний сундук</div>
-              <div className="text-[10px] text-white/45">За всі завдання дня</div>
+              <div className="font-display text-sm text-stroke-sm">{t('quests.bonusChest')}</div>
+              <div className="text-[10px] text-white/45">{t('quests.forAllTasks')}</div>
             </div>
           </div>
           <GameButton
@@ -228,7 +230,7 @@ export function QuestsScreen() {
               claimDailyChest();
             }}
           >
-            {dailyChestClaimed ? 'Відкрито' : 'Відкрити'}
+            {dailyChestClaimed ? t('quests.opened') : t('quests.open')}
           </GameButton>
         </div>
       </section>

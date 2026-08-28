@@ -9,6 +9,7 @@ import { haptic } from '../../lib/haptics';
 import { Modal } from '../ui/Modal';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ type Phase = 'ready' | 'crafting' | 'result';
 const CRAFT_MS = 2000;
 
 export function MergeModal({ open, onClose, name, level }: Props) {
+  const t = useT();
   const tiers = useGameStore((s) => s.tiers);
   const balanceGram = useGameStore((s) => s.balanceGram);
   const mergeCharacters = useGameStore((s) => s.mergeCharacters);
@@ -67,7 +69,7 @@ export function MergeModal({ open, onClose, name, level }: Props) {
 
   if (!display) {
     return (
-      <Modal open={open} onClose={onClose} title="Злиття" accent="#A855F7">
+      <Modal open={open} onClose={onClose} title={t('merge.merge')} accent="#A855F7">
         <div />
       </Modal>
     );
@@ -101,7 +103,7 @@ export function MergeModal({ open, onClose, name, level }: Props) {
       title={
         <span className="inline-flex items-center gap-2">
           <Layers className="h-5 w-5 text-neon-purple" strokeWidth={2.5} />
-          Злиття · {display.name}
+          {t('merge.title', { name: display.name })}
         </span>
       }
     >
@@ -147,7 +149,7 @@ export function MergeModal({ open, onClose, name, level }: Props) {
                   style={{ borderColor: hex, boxShadow: `0 0 14px ${hex}88` }}
                 >
                   {MEME_EMOJI[display.memeType]}
-                  <span className="absolute -bottom-2 rounded-md border-2 border-black bg-farm-card px-1 text-[9px] font-extrabold text-white">
+                  <span className="absolute -bottom-2 rounded-md border-2 border-black bg-farm-card px-1 text-[9px] font-extrabold text-white dir-ltr">
                     Lv.{level}
                   </span>
                 </motion.div>
@@ -165,7 +167,7 @@ export function MergeModal({ open, onClose, name, level }: Props) {
                     animate={{ opacity: [0.4, 1, 0.4] }}
                     transition={{ duration: 1, repeat: Infinity }}
                   >
-                    Крафт…
+                    {t('merge.crafting')}
                   </motion.span>
                 </>
               )}
@@ -193,7 +195,7 @@ export function MergeModal({ open, onClose, name, level }: Props) {
             >
               {MEME_EMOJI[display.memeType]}
               <span
-                className="absolute -bottom-2 rounded-md border-2 border-black px-1.5 text-[10px] font-extrabold text-white"
+                className="absolute -bottom-2 rounded-md border-2 border-black px-1.5 text-[10px] font-extrabold text-white dir-ltr"
                 style={{ backgroundColor: isCrit ? '#FACC15' : '#A855F7', color: isCrit ? '#000' : '#fff' }}
               >
                 Lv.{mergeResult?.newLevel}
@@ -209,14 +211,14 @@ export function MergeModal({ open, onClose, name, level }: Props) {
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-2xl border-2 border-black bg-neon-lime/15 py-2 text-center">
               <div className="font-display text-xl text-neon-lime text-stroke-sm">70%</div>
-              <div className="text-[9px] font-extrabold uppercase text-white/50">Успіх</div>
+              <div className="text-[9px] font-extrabold uppercase text-white/50">{t('merge.win')}</div>
             </div>
             <div className="rounded-2xl border-2 border-black bg-neon-pink/15 py-2 text-center">
               <div className="inline-flex items-center gap-1 font-display text-xl text-neon-pink text-stroke-sm">
                 <Flame className="h-4 w-4" strokeWidth={3} />
                 30%
               </div>
-              <div className="text-[9px] font-extrabold uppercase text-white/50">Ризик згоряння</div>
+              <div className="text-[9px] font-extrabold uppercase text-white/50">{t('merge.burnRisk')}</div>
             </div>
           </div>
           <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] font-bold text-white/50">
@@ -235,9 +237,9 @@ export function MergeModal({ open, onClose, name, level }: Props) {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           {isFail ? (
             <div className="text-center">
-              <div className="font-display text-2xl text-neon-pink text-stroke">💥 КАРТА ЗГОРІЛА</div>
+              <div className="font-display text-2xl text-neon-pink text-stroke">💥 {t('merge.cardBurned')}</div>
               <div className="mt-1 text-xs font-bold text-white/50">
-                Матеріал втрачено · залишилась 1 карта Lv.{mergeResult.fromLevel}
+                {t('merge.materialLost', { n: mergeResult.fromLevel })}
               </div>
             </div>
           ) : (
@@ -250,22 +252,22 @@ export function MergeModal({ open, onClose, name, level }: Props) {
                     className="font-display text-xl text-neon-yellow text-stroke"
                   >
                     <Sparkles className="mr-1 inline h-5 w-5" strokeWidth={3} />
-                    CRITICAL UPGRADE +{mergeResult.delta} LVL!
+                    {t('merge.criticalUpgrade', { n: mergeResult.delta })}
                   </motion.div>
                 ) : (
-                  <div className="font-display text-xl text-neon-lime text-stroke">
-                    Lv.{mergeResult.fromLevel} → Lv.{mergeResult.newLevel}
+                  <div className="font-display text-xl text-neon-lime text-stroke dir-ltr">
+                    {t('merge.levelUp', { from: mergeResult.fromLevel, to: mergeResult.newLevel })}
                   </div>
                 )}
               </div>
               <div className="mt-3 rounded-2xl border-2 border-black bg-farm-card/70 p-3">
                 <Row
-                  label="Дохід"
+                  label={t('merge.income')}
                   from={`${fmtGram(mergeResult.incomeBefore, 3)} /d`}
                   to={`${fmtGram(mergeResult.incomeAfter, 3)} /d`}
                 />
                 <Row
-                  label="Сила"
+                  label={t('merge.powerStat')}
                   from={formatNum(mergeResult.powerBefore)}
                   to={formatNum(mergeResult.powerAfter)}
                 />
@@ -278,15 +280,15 @@ export function MergeModal({ open, onClose, name, level }: Props) {
       {/* ============ FOOTER ============ */}
       <div className="mt-3 flex items-center justify-between">
         <div className="inline-flex items-center gap-1 text-xs font-bold text-white/60">
-          Комісія:
+          {t('merge.fee')}
           <span className={canAfford ? 'text-neon-yellow' : 'text-neon-pink'}>
             <GramIcon className="mb-0.5 mr-0.5 inline h-3.5 w-3.5" />
-            {fmtGram(fee)}
+            <span className="dir-ltr">{fmtGram(fee)}</span>
           </span>
         </div>
         {phase === 'result' ? (
           <GameButton accent={isFail ? 'pink' : 'lime'} onClick={close}>
-            {isFail ? 'Закрити' : 'Забрати'}
+            {isFail ? t('common.close') : t('common.take')}
           </GameButton>
         ) : (
           <GameButton
@@ -296,14 +298,14 @@ export function MergeModal({ open, onClose, name, level }: Props) {
           >
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-4 w-4" strokeWidth={3} />
-              {phase === 'crafting' ? 'Крафт…' : 'Злити'}
+              {phase === 'crafting' ? t('merge.crafting') : t('merge.merge')}
             </span>
           </GameButton>
         )}
       </div>
 
       <div className="mt-2 text-center text-[10px] uppercase tracking-wide text-white/35">
-        {RARITY_LABEL[display.rarity]} · Tier {display.tier}
+        {RARITY_LABEL[display.rarity]} · {t('merge.tier', { n: display.tier })}
         {phase === 'result' && mergeResult ? ` · roll ${mergeResult.roll}` : ''}
       </div>
     </Modal>

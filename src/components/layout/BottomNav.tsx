@@ -9,6 +9,7 @@ import {
   RaidIcon,
   WalletIcon,
 } from '../icons/NavIcons';
+import { useT } from '../../i18n/useT';
 
 interface IconProps {
   className?: string;
@@ -16,19 +17,19 @@ interface IconProps {
 
 interface TabDef {
   id: NavTab;
-  label: string;
   Icon: ComponentType<IconProps>;
 }
 
 const TABS: TabDef[] = [
-  { id: 'quests', label: 'Quests', Icon: QuestsIcon },
-  { id: 'farm', label: 'Farm', Icon: FarmIcon },
-  { id: 'raid', label: 'Raid', Icon: RaidIcon },
-  { id: 'invite', label: 'Frens', Icon: InviteIcon },
-  { id: 'wallet', label: 'Wallet', Icon: WalletIcon },
+  { id: 'quests', Icon: QuestsIcon },
+  { id: 'farm', Icon: FarmIcon },
+  { id: 'raid', Icon: RaidIcon },
+  { id: 'invite', Icon: InviteIcon },
+  { id: 'wallet', Icon: WalletIcon },
 ];
 
 export function BottomNav() {
+  const t = useT();
   const activeTab = useGameStore((s) => s.activeTab);
   const setActiveTab = useGameStore((s) => s.setActiveTab);
   const questBadge = useGameStore(selectQuestBadge);
@@ -51,7 +52,7 @@ export function BottomNav() {
   return (
     <nav className="safe-b sticky bottom-0 z-30 border-t-2 border-black bg-farm-bg/90 px-2 pt-2 backdrop-blur-md">
       <ul className="flex items-stretch justify-between gap-1">
-        {TABS.map(({ id, label, Icon }) => {
+        {TABS.map(({ id, Icon }) => {
           const on = id === activeTab;
           const badge = badgeFor(id);
           return (
@@ -90,7 +91,7 @@ export function BottomNav() {
                     on ? 'text-black' : 'text-white/45',
                   ].join(' ')}
                 >
-                  {label}
+                  {t(`nav.${id}`)}
                 </span>
               </button>
             </li>

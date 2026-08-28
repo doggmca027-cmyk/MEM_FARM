@@ -53,6 +53,12 @@ body {
     background-position: 0 0, 10px 10px;
   }
 
+  /* force LTR for numbers / codes / TON addresses even inside an RTL layout */
+  .dir-ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
   .safe-t {
     padding-top: max(var(--safe-top), 12px);
   }

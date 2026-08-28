@@ -54,6 +54,8 @@ export interface NotifPrefs {
   farm_ready: boolean;
   pvp_attack: boolean;
   referral_income: boolean;
+  /** UI language, mirrored here so the push dispatcher can localise messages. */
+  lang?: string;
 }
 
 export const DEFAULT_NOTIF_PREFS: NotifPrefs = {

@@ -11,6 +11,7 @@ import type { Transaction } from '../types/finance';
 import type { BattleResult, Quest, QuestId, RaidOpponent, Reward } from '../types/quests';
 import type { ReferralFriend, ReferralStats } from '../types/referral';
 import { round4 } from '../lib/format';
+import { applyDir, isLang, loadLang, saveLang, type LangCode } from '../i18n';
 import { isSameUtcDay, utcDaysBetween } from '../lib/time';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
@@ -253,6 +254,9 @@ interface GameStore {
   settingsOpen: boolean;
   notifPrefs: NotifPrefs;
 
+  /** UI language; persisted to localStorage. `ar`/`fa` also flip the document to RTL. */
+  lang: LangCode;
+
   /** epoch ms of the last withdrawal request (24h cooldown), or null. */
   lastWithdrawAt: number | null;
 
@@ -291,6 +295,8 @@ interface GameStore {
   setSettingsOpen: (open: boolean) => void;
   /** Toggle a push-notification preference (persists to Supabase in live mode). */
   setNotifPref: (key: keyof NotifPrefs, value: boolean) => void;
+  /** Switch UI language: persist to localStorage + update <html dir/lang>. */
+  setLang: (code: LangCode) => void;
 
   // --- admin (live only, requires profile.isAdmin) ---
   setAdminOpen: (open: boolean) => void;
@@ -371,6 +377,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   adminOpen: false,
   settingsOpen: false,
   notifPrefs: { ...DEFAULT_NOTIF_PREFS },
+  lang: loadLang(),
   lastWithdrawAt: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -391,11 +398,19 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         fetchTransactions(),
       ]);
 
+      // adopt a server-side language choice if it's a language we know
+      const serverLang = profile.notifPrefs?.lang;
+      if (isLang(serverLang) && serverLang !== get().lang) {
+        saveLang(serverLang);
+        applyDir(serverLang);
+      }
+
       set((st) => ({
         mode: 'live',
         status: 'ready',
         profile,
         notifPrefs: profile.notifPrefs ?? st.notifPrefs,
+        lang: isLang(serverLang) ? serverLang : st.lang,
         referralCode: profile.referralCode ?? st.referralCode,
         balanceGram: farmData.balanceGram,
         pendingGram: farmData.pendingGram,
@@ -873,6 +888,24 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
 
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+  setLang: (code) => {
+    saveLang(code);
+    applyDir(code);
+    set((s) => {
+      const notifPrefs = { ...s.notifPrefs, lang: code };
+      if (s.mode === 'live') {
+        void updateNotifPrefs(notifPrefs).catch((err) =>
+          console.warn('[store] setLang persist failed:', err),
+        );
+      }
+      return {
+        lang: code,
+        notifPrefs,
+        profile: s.profile ? { ...s.profile, notifPrefs } : s.profile,
+      };
+    });
+  },
 
   setNotifPref: (key, value) =>
     set((s) => {

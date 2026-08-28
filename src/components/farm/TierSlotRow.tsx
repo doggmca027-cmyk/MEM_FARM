@@ -7,6 +7,7 @@ import { MEME_EMOJI, RARITY_HEX } from '../../lib/meme';
 import { fmtGram } from '../../lib/format';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 const TIER_HEX: Record<TierId, string> = {
   1: '#84CC16',
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
+  const t = useT();
   const balanceGram = useGameStore((s) => s.balanceGram);
 
   const hex = TIER_HEX[row.tier];
@@ -70,7 +72,7 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
           className="flex-none rounded-lg border-2 border-black px-2 py-0.5 font-display text-xs uppercase leading-none text-black"
           style={{ backgroundColor: hex }}
         >
-          Tier {row.tier}
+          {t('merge.tier', { n: row.tier })}
         </span>
 
         {/* rarity dots — 10 slots, 5 per row */}
@@ -87,12 +89,12 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
         </span>
 
         <span className="ml-auto flex-none font-display text-sm text-stroke-sm">
-          <span className="mr-1 text-[9px] font-bold uppercase text-white/40">Відкрито</span>
-          {discovered}/{pool.length}
+          <span className="mr-1 text-[9px] font-bold uppercase text-white/40">{t('farm.opened')}</span>
+          <span className="dir-ltr">{discovered}/{pool.length}</span>
         </span>
         <span className="flex-none inline-flex items-center gap-1 rounded-lg border-2 border-black bg-farm-deep px-1.5 py-0.5 text-[11px] font-bold leading-none text-neon-cyan">
           <GramIcon className="h-3.5 w-3.5" />
-          {fmtGram(row.costGram)}
+          <span className="dir-ltr">{fmtGram(row.costGram)}</span>
         </span>
       </button>
 
@@ -155,7 +157,7 @@ export function TierSlotRow({ row, index, expanded, onToggle, onRoll }: Props) {
               >
                 <span className="inline-flex items-center gap-1.5">
                   <Dice5 className="h-4 w-4" strokeWidth={3} />
-                  Крутити за {fmtGram(row.costGram)} GRAM
+                  {t('farm.spinFor', { n: fmtGram(row.costGram) })}
                 </span>
               </GameButton>
             </div>

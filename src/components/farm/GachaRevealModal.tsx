@@ -8,8 +8,10 @@ import { fireJackpot, firePop } from '../../lib/confetti';
 import { haptic } from '../../lib/haptics';
 import { GameButton } from '../ui/GameButton';
 import { GramIcon } from '../icons/Icons';
+import { useT } from '../../i18n/useT';
 
 export function GachaRevealModal() {
+  const t = useT();
   const reveal = useGameStore((s) => s.reveal);
   const dismiss = useGameStore((s) => s.dismissReveal);
 
@@ -72,12 +74,12 @@ export function GachaRevealModal() {
               style={{ backgroundColor: rHex }}
             >
               {jackpot ? <Star className="h-3 w-3" strokeWidth={3} /> : <Sparkles className="h-3 w-3" strokeWidth={3} />}
-              {jackpot ? 'Jackpot' : RARITY_LABEL[reveal.card.rarity]}
+              {jackpot ? t('reveal.jackpot') : RARITY_LABEL[reveal.card.rarity]}
             </div>
 
             <div className="relative my-2 text-[11px] font-bold uppercase tracking-wide text-white/45">
-              Tier {reveal.tier} · шанс {reveal.card.weight}%
-              {reveal.isNewDiscovery ? ' · нова картка!' : ''}
+              {t('reveal.tierChance', { tier: reveal.tier, chance: reveal.card.weight })}
+              {reveal.isNewDiscovery ? t('reveal.newCard') : ''}
             </div>
 
             <motion.div
@@ -94,12 +96,15 @@ export function GachaRevealModal() {
             <div className="relative mt-3 font-display text-2xl text-stroke">{reveal.character.name}</div>
 
             <div className="relative mt-1 inline-flex items-center gap-1.5 rounded-full border-2 border-black bg-neon-lime px-3 py-0.5 font-display text-sm text-black text-stroke-sm">
-              <GramIcon className="h-4 w-4" />+{fmtGram(reveal.character.currentIncome, 3)} GRAM / день
+              <GramIcon className="h-4 w-4" />
+              <span className="dir-ltr">
+                {t('reveal.perDay', { n: fmtGram(reveal.character.currentIncome, 3) })}
+              </span>
             </div>
 
             <div className="relative mt-4">
               <GameButton accent="yellow" block onClick={dismiss}>
-                Забрати на ферму
+                {t('reveal.takeToFarm')}
               </GameButton>
             </div>
           </motion.div>

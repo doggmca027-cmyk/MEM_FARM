@@ -3,18 +3,20 @@ import { motion } from 'framer-motion';
 import { groupCollection, useGameStore } from '../../store/useGameStore';
 import { characterArtPrompt, MEME_EMOJI, RARITY_HEX, RARITY_LABEL } from '../../lib/meme';
 import { fmtGram } from '../../lib/format';
+import { useT } from '../../i18n/useT';
 
 export function CollectionStrip() {
+  const t = useT();
   const tiers = useGameStore((s) => s.tiers);
   const groups = useMemo(() => groupCollection(tiers), [tiers]);
 
   if (groups.length === 0) {
     return (
       <section>
-        <h2 className="mb-2 font-display text-lg text-stroke">Колекція</h2>
+        <h2 className="mb-2 font-display text-lg text-stroke">{t('collection.title')}</h2>
         <div className="grid place-items-center rounded-3xl border-2 border-dashed border-white/20 bg-farm-card/40 py-8 text-center">
           <div className="text-4xl">🫙</div>
-          <div className="mt-1 text-xs text-white/45">Крутіть тіри, щоб зібрати мемів</div>
+          <div className="mt-1 text-xs text-white/45">{t('collection.emptyHint')}</div>
         </div>
       </section>
     );
@@ -23,8 +25,8 @@ export function CollectionStrip() {
   return (
     <section>
       <div className="mb-2 flex items-end justify-between">
-        <h2 className="font-display text-lg text-stroke">Колекція</h2>
-        <span className="text-xs font-bold text-white/40">{groups.length} унікальних</span>
+        <h2 className="font-display text-lg text-stroke">{t('collection.title')}</h2>
+        <span className="text-xs font-bold text-white/40">{t('collection.uniques', { n: groups.length })}</span>
       </div>
 
       <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
@@ -64,7 +66,7 @@ export function CollectionStrip() {
                 <div className="truncate font-display text-xs leading-tight text-stroke-sm">
                   {g.sample.name}
                 </div>
-                <div className="text-[10px] font-bold text-neon-lime">
+                <div className="text-[10px] font-bold text-neon-lime dir-ltr">
                   +{fmtGram(g.sample.currentIncome, 3)}
                 </div>
               </div>
