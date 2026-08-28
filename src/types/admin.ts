@@ -10,6 +10,8 @@ export interface WithdrawalRequest {
   netAmount: number;
   walletAddress: string | null;
   requestedAt: number;
+  /** PENDING | AUTO_PENDING | APPROVED | PROCESSING */
+  status: string;
 }
 
 export interface AdminMetrics {

@@ -83,9 +83,17 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 // ============ TAB 1 — WITHDRAWALS QUEUE ============
 
+const STATUS_TONE: Record<string, string> = {
+  PENDING: 'text-neon-yellow',
+  AUTO_PENDING: 'text-neon-cyan',
+  APPROVED: 'text-neon-cyan',
+  PROCESSING: 'text-neon-lime',
+};
+
 function QueueTab() {
   const approve = useGameStore((s) => s.adminApproveWithdrawal);
   const reject = useGameStore((s) => s.adminRejectWithdrawal);
+  const triggerPayout = useGameStore((s) => s.adminTriggerPayout);
 
   const [rows, setRows] = useState<WithdrawalRequest[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -119,6 +127,33 @@ function QueueTab() {
     } catch (e) {
       setErr(String((e as Error).message ?? e));
       haptic.notify('error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // no hash → hand the payout to ton-payout-worker
+  const doApproveAuto = async (txId: string) => {
+    setBusy(txId);
+    try {
+      await approve(txId, '');
+      await triggerPayout();
+      haptic.notify('success');
+      await load();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const kickWorker = async (txId: string) => {
+    setBusy(txId);
+    try {
+      await triggerPayout();
+      haptic.notify('success');
+      await load();
     } finally {
       setBusy(null);
     }
@@ -169,7 +204,7 @@ function QueueTab() {
                 </div>
               </div>
               <div className="text-right text-[11px] font-bold text-white/60">
-                баланс
+                <span className={STATUS_TONE[r.status] ?? 'text-white/50'}>{r.status}</span>
                 <div className="inline-flex items-center gap-0.5 text-neon-cyan">
                   <GramIcon className="h-3 w-3" />
                   {fmtGram(r.balanceGram, 3)}
@@ -195,17 +230,28 @@ function QueueTab() {
               )}
             </button>
 
-            {hashFor === r.txId ? (
+            {r.status !== 'PENDING' ? (
+              <div className="relative mt-2 flex items-center gap-2">
+                <span className="flex-1 text-[11px] font-bold text-white/50">
+                  {r.status === 'PROCESSING' ? 'Відправляється воркером…' : 'У черзі на авто-виплату'}
+                </span>
+                {r.status !== 'PROCESSING' && (
+                  <GameButton accent="cyan" className="text-[11px]" disabled={busy === r.txId} onClick={() => kickWorker(r.txId)}>
+                    Штовхнути воркер
+                  </GameButton>
+                )}
+              </div>
+            ) : hashFor === r.txId ? (
               <div className="relative mt-2 space-y-2">
                 <input
                   value={hash}
                   onChange={(e) => setHash(e.target.value)}
-                  placeholder="Tx Hash (необов'язково)"
+                  placeholder="Tx Hash (ручна відправка)"
                   className="w-full rounded-lg border-2 border-black bg-farm-deep px-2 py-1.5 text-xs text-white outline-none placeholder:text-white/30"
                 />
                 <div className="flex gap-2">
                   <GameButton accent="lime" block disabled={busy === r.txId} onClick={() => doApprove(r.txId)}>
-                    Підтвердити
+                    Позначити виплаченим
                   </GameButton>
                   <GameButton
                     accent="cyan"
@@ -219,13 +265,21 @@ function QueueTab() {
                 </div>
               </div>
             ) : (
-              <div className="relative mt-2 flex gap-2">
-                <GameButton accent="lime" block disabled={!!busy} onClick={() => setHashFor(r.txId)}>
-                  Підтвердити
-                </GameButton>
-                <GameButton accent="pink" block disabled={busy === r.txId} onClick={() => doReject(r.txId)}>
-                  Відхилити
-                </GameButton>
+              <div className="relative mt-2 space-y-1.5">
+                <div className="flex gap-2">
+                  <GameButton accent="lime" block disabled={busy === r.txId} onClick={() => doApproveAuto(r.txId)}>
+                    Підтвердити
+                  </GameButton>
+                  <GameButton accent="pink" block disabled={busy === r.txId} onClick={() => doReject(r.txId)}>
+                    Відхилити
+                  </GameButton>
+                </div>
+                <button
+                  onClick={() => setHashFor(r.txId)}
+                  className="text-[10px] font-bold text-white/40 underline"
+                >
+                  ввести хеш вручну
+                </button>
               </div>
             )}
           </div>
@@ -239,22 +293,47 @@ function QueueTab() {
 
 function EconomyTab() {
   const setFactor = useGameStore((s) => s.adminSetEmissionFactor);
+  const getSettings = useGameStore((s) => s.adminGetSettings);
+  const toggleAuto = useGameStore((s) => s.adminToggleAutoWithdraw);
   const [m, setM] = useState<AdminMetrics | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [auto, setAuto] = useState(false);
+  const [limit, setLimit] = useState('5');
+  const [payoutBusy, setPayoutBusy] = useState(false);
 
   const load = useCallback(async () => {
     setErr(null);
     try {
       setM(await adminFetchMetrics());
+      const cfg = await getSettings();
+      setAuto(cfg.autoWithdraw);
+      setLimit(String(cfg.maxInstantLimit));
     } catch (e) {
       setErr(String((e as Error).message ?? e));
     }
-  }, []);
+  }, [getSettings]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const savePayout = async (nextAuto: boolean) => {
+    setPayoutBusy(true);
+    try {
+      const lim = Math.max(0, parseFloat(limit.replace(',', '.')) || 0);
+      const cfg = await toggleAuto(nextAuto, lim);
+      setAuto(cfg.autoWithdraw);
+      setLimit(String(cfg.maxInstantLimit));
+      haptic.notify('success');
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setPayoutBusy(false);
+    }
+  };
 
   const apply = async (f: number) => {
     setBusy(true);
@@ -314,6 +393,51 @@ function EconomyTab() {
             </div>
             <div className="mt-1.5 text-[10px] text-white/40">
               Застосовується до всіх ферм миттєво + до нових акаунтів.
+            </div>
+          </div>
+
+          {/* ⚡ Режим виплат */}
+          <div className="rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/80 p-3">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-white/50">
+              ⚡ Режим виплат
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                disabled={payoutBusy}
+                onClick={() => savePayout(true)}
+                className={[
+                  'rounded-xl border-2 border-b-4 border-black py-2 text-[11px] font-extrabold uppercase active:translate-y-0.5',
+                  auto ? 'border-b-black/40 bg-neon-lime text-black' : 'border-b-black/40 bg-farm-deep text-white/60',
+                ].join(' ')}
+              >
+                Автоматичні виплати
+              </button>
+              <button
+                disabled={payoutBusy}
+                onClick={() => savePayout(false)}
+                className={[
+                  'rounded-xl border-2 border-b-4 border-black py-2 text-[11px] font-extrabold uppercase active:translate-y-0.5',
+                  !auto ? 'border-b-black/40 bg-neon-yellow text-black' : 'border-b-black/40 bg-farm-deep text-white/60',
+                ].join(' ')}
+              >
+                Ручне підтвердження
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[11px] text-white/50">Ліміт без підтвердження</span>
+              <input
+                inputMode="decimal"
+                value={limit}
+                onChange={(e) => setLimit(e.target.value)}
+                className="w-20 rounded-lg border-2 border-black bg-farm-deep px-2 py-1 text-right text-xs text-white outline-none"
+              />
+              <span className="text-[11px] text-white/50">GRAM</span>
+              <GameButton accent="cyan" className="ml-auto text-[11px]" disabled={payoutBusy} onClick={() => savePayout(auto)}>
+                Зберегти
+              </GameButton>
+            </div>
+            <div className="mt-1.5 text-[10px] text-white/40">
+              Авто: виплати ≤ ліміту йдуть у чергу воркера без ручного підтвердження.
             </div>
           </div>
         </>

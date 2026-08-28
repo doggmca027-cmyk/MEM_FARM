@@ -19,7 +19,10 @@ import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../
 import { DAILY_CHEST_REWARD, DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
 import {
   adminBanUser,
+  adminGetSettings,
   adminProcessWithdrawal,
+  adminToggleAutoWithdraw,
+  adminTriggerPayout,
   adminUpdateEmissionFactor,
   cancelPvpLobbyRPC,
   claimIncomeRPC,
@@ -32,6 +35,7 @@ import {
   fetchTransactions,
   fetchUserProfile,
   joinPvpLobbyRPC,
+  type WithdrawConfig,
   mergeCharactersRPC,
   requestWithdrawalRPC,
   rollTierRPC,
@@ -214,22 +218,14 @@ function characterFromCard(card: GachaCard): MemeCharacter {
 
 // --- seed data ---------------------------------------------------------
 
-function seedInstance(tier: TierId, slot: CardSlot, n: number): MemeCharacter {
-  const card = tierPool(tier)[slot - 1];
-  return { ...characterFromCard(card), id: `uc-seed-t${tier}s${slot}-${n}` };
-}
-
-const SEED_TIERS: TierRow[] = TIER_IDS.map((tier) => {
-  const row: TierRow = { tier, costGram: TIER_COST[tier], discovered: [], characters: [] };
-  if (tier === 1) {
-    row.discovered = [1, 2];
-    row.characters = [seedInstance(1, 1, 1), seedInstance(1, 1, 2), seedInstance(1, 2, 1)];
-  } else if (tier === 2) {
-    row.discovered = [1];
-    row.characters = [seedInstance(2, 1, 1)];
-  }
-  return row;
-});
+// Zero onboarding: a fresh account starts empty — no GRAM, no cards. Live mode
+// mirrors the DB (balances default 0, no user_characters); mock mode matches.
+const SEED_TIERS: TierRow[] = TIER_IDS.map((tier) => ({
+  tier,
+  costGram: TIER_COST[tier],
+  discovered: [],
+  characters: [],
+}));
 
 const INCOME_PER_DAY = totalIncome(SEED_TIERS);
 
@@ -362,6 +358,9 @@ interface GameStore {
   adminRejectWithdrawal: (txId: string) => Promise<void>;
   adminSetEmissionFactor: (factor: number) => Promise<number>;
   adminSetBanned: (userId: string, banned: boolean) => Promise<boolean>;
+  adminGetSettings: () => Promise<WithdrawConfig>;
+  adminToggleAutoWithdraw: (enabled: boolean, limit: number) => Promise<WithdrawConfig>;
+  adminTriggerPayout: () => Promise<void>;
 }
 
 const bootTgUser = readTelegramUser();
@@ -374,11 +373,11 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   displayName: bootTgUser.firstName ?? bootTgUser.username ?? 'Player',
   activeTab: 'farm',
 
-  balanceGram: 12.5,
+  balanceGram: 0,
   pendingGram: 0,
   lockedGram: 0,
   incomePerDay: INCOME_PER_DAY,
-  xp: 1250,
+  xp: 0,
 
   farm: {
     totalIncomePerDay: INCOME_PER_DAY,
@@ -1044,6 +1043,10 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   adminSetBanned: async (userId, banned) => {
     return adminBanUser(userId, banned);
   },
+
+  adminGetSettings: async () => adminGetSettings(),
+  adminToggleAutoWithdraw: async (enabled, limit) => adminToggleAutoWithdraw(enabled, limit),
+  adminTriggerPayout: async () => adminTriggerPayout(),
 }));
 
 // --- rewards -----------------------------------------------------------

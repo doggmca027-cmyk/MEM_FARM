@@ -230,7 +230,53 @@ export async function adminListWithdrawals(): Promise<WithdrawalRequest[]> {
     netAmount: num(r.net_amount),
     walletAddress: (r.wallet_address as string) ?? null,
     requestedAt: ms(r.requested_at as string),
+    status: (r.status as string) ?? 'PENDING',
   }));
+}
+
+// --- withdraw automation / hot wallet -------------------------------------
+
+export interface WithdrawConfig {
+  autoWithdraw: boolean;
+  maxInstantLimit: number;
+}
+
+export async function adminGetSettings(): Promise<WithdrawConfig> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_get_settings', { p_admin_id: uid });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    autoWithdraw: Boolean(row?.auto_withdraw),
+    maxInstantLimit: num(row?.max_instant_limit),
+  };
+}
+
+export async function adminToggleAutoWithdraw(
+  enabled: boolean,
+  limit: number,
+): Promise<WithdrawConfig> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_toggle_auto_withdraw', {
+    p_admin_id: uid,
+    p_enabled: enabled,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    autoWithdraw: Boolean(row?.auto_withdraw),
+    maxInstantLimit: num(row?.max_instant_limit),
+  };
+}
+
+/** Best-effort kick of the payout worker (drains APPROVED / AUTO_PENDING). */
+export async function adminTriggerPayout(): Promise<void> {
+  try {
+    await client().functions.invoke('ton-payout-worker', { body: {} });
+  } catch {
+    /* worker also runs on cron — non-fatal */
+  }
 }
 
 export async function adminProcessWithdrawal(
