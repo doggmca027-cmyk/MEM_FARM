@@ -9,6 +9,9 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
 let inFlight: Promise<boolean> | null = null;
 
+/** Last authentication outcome — surfaced in Settings for debugging. */
+export let lastAuthError: string | null = null;
+
 /**
  * Exchange the Telegram `initData` for a Supabase session via the
  * `telegram-auth` Edge Function, then install it on the client so the store
@@ -23,7 +26,10 @@ export function authenticateWithTelegram(): Promise<boolean> {
 }
 
 async function run(): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase || !FN_URL) return false;
+  if (!isSupabaseConfigured || !supabase || !FN_URL) {
+    lastAuthError = 'supabase not configured';
+    return false;
+  }
 
   let initData = '';
   try {
@@ -31,11 +37,17 @@ async function run(): Promise<boolean> {
   } catch {
     initData = '';
   }
-  if (!initData) return false; // launched outside Telegram
+  if (!initData) {
+    lastAuthError = 'no initData (not launched inside Telegram)';
+    return false;
+  }
 
   // Already signed in (persisted session)?
   const { data: existing } = await supabase.auth.getSession();
-  if (existing.session) return true;
+  if (existing.session) {
+    lastAuthError = null;
+    return true;
+  }
 
   try {
     const res = await fetch(FN_URL, {
@@ -49,24 +61,32 @@ async function run(): Promise<boolean> {
     });
 
     if (!res.ok) {
-      console.warn('[auth] telegram-auth rejected:', res.status, await safeText(res));
+      const txt = await safeText(res);
+      lastAuthError = `telegram-auth ${res.status}: ${txt.slice(0, 120)}`;
+      console.warn('[auth]', lastAuthError);
       return false;
     }
 
     const json = (await res.json()) as { access_token?: string; refresh_token?: string };
-    if (!json.access_token || !json.refresh_token) return false;
+    if (!json.access_token || !json.refresh_token) {
+      lastAuthError = 'telegram-auth: no tokens in response';
+      return false;
+    }
 
     const { error } = await supabase.auth.setSession({
       access_token: json.access_token,
       refresh_token: json.refresh_token,
     });
     if (error) {
-      console.warn('[auth] setSession failed:', error.message);
+      lastAuthError = `setSession: ${error.message}`;
+      console.warn('[auth]', lastAuthError);
       return false;
     }
+    lastAuthError = null;
     return true;
   } catch (err) {
-    console.warn('[auth] telegram-auth error:', err);
+    lastAuthError = `telegram-auth error: ${String(err).slice(0, 120)}`;
+    console.warn('[auth]', lastAuthError);
     return false;
   }
 }

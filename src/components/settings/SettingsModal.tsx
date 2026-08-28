@@ -1,6 +1,7 @@
 import { Bell, Flame, Globe, Swords, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { NotifPrefs } from '../../services/api';
+import { lastAuthError } from '../../services/auth';
 import { useGameStore } from '../../store/useGameStore';
 import { haptic } from '../../lib/haptics';
 import { LANGS } from '../../i18n';
@@ -33,6 +34,8 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const prefs = useGameStore((s) => s.notifPrefs);
   const setNotifPref = useGameStore((s) => s.setNotifPref);
   const mode = useGameStore((s) => s.mode);
+  const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
+  const tgId = useGameStore((s) => s.profile?.telegramId ?? null);
   const lang = useGameStore((s) => s.lang);
   const setLang = useGameStore((s) => s.setLang);
 
@@ -121,6 +124,17 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
       <p className="mt-3 text-[10px] text-white/35">
         {mode === 'live' ? t('settings.pushLive') : t('settings.pushDemo')}
       </p>
+
+      {/* diagnostics */}
+      <div className="mt-3 space-y-0.5 rounded-xl border-2 border-black bg-farm-deep px-3 py-2 text-[10px] font-mono text-white/45">
+        <div>
+          session:{' '}
+          <span className={mode === 'live' ? 'text-neon-lime' : 'text-neon-pink'}>{mode}</span>
+          {tgId != null && <span className="dir-ltr"> · tg {tgId}</span>}
+          {isAdmin && <span className="text-neon-yellow"> · admin</span>}
+        </div>
+        {lastAuthError && <div className="break-words text-neon-pink">auth: {lastAuthError}</div>}
+      </div>
     </Modal>
   );
 }
