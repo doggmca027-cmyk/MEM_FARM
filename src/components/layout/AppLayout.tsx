@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore, type NavTab } from '../../store/useGameStore';
 import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { FarmHubScreen } from '../../screens/FarmHubScreen';
 import { QuestsScreen } from '../../screens/QuestsScreen';
 import { RaidScreen } from '../../screens/RaidScreen';
@@ -46,7 +47,9 @@ export function AppLayout() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
-            {SCREENS[activeTab]()}
+            <ErrorBoundary resetKey={activeTab} label={activeTab}>
+              {SCREENS[activeTab]()}
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>

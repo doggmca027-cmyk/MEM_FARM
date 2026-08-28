@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { CalendarDays, CheckCircle2, Circle, Flame, Gift, Lock, Sparkles } from 'lucide-react';
 import type { Reward } from '../types/quests';
 import {
@@ -17,8 +18,8 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { GramIcon } from '../components/icons/Icons';
 import { useT } from '../i18n/useT';
 
-function rewardChip(r: Reward): { icon: ReactNode; text: string } {
-  switch (r.kind) {
+function rewardChip(r: Reward | undefined): { icon: ReactNode; text: string } {
+  switch (r?.kind) {
     case 'xp':
       return { icon: <Sparkles className="h-3 w-3" strokeWidth={3} />, text: `${r.amount} XP` };
     case 'gram':
@@ -38,7 +39,9 @@ export function QuestsScreen() {
   const quests = useGameStore((s) => s.quests);
   const dailyChestClaimed = useGameStore((s) => s.dailyChestClaimed);
   const canCheckIn = useGameStore(selectCanCheckIn);
-  const progress = useGameStore(selectDailyProgress);
+  // useShallow: selectDailyProgress returns a fresh object — without shallow
+  // equality Zustand v5 re-renders every frame → "Maximum update depth" crash.
+  const progress = useGameStore(useShallow(selectDailyProgress));
 
   const tickDaily = useGameStore((s) => s.tickDaily);
   const claimDailyCheckIn = useGameStore((s) => s.claimDailyCheckIn);
@@ -99,7 +102,7 @@ export function QuestsScreen() {
 
         {/* 7-day grid */}
         <div className="relative mt-3 grid grid-cols-7 gap-1.5">
-          {STREAK_DAYS.map((d) => {
+          {(STREAK_DAYS ?? []).map((d) => {
             const claimed = d.day <= streakDay;
             const current = d.day === nextDay;
             return (
@@ -119,7 +122,7 @@ export function QuestsScreen() {
                   {claimed ? '✅' : d.isSuper ? '🎁' : current ? '🎯' : '🔒'}
                 </span>
                 <span className="text-[8px] font-bold leading-tight text-neon-lime">
-                  {rewardChip(d.rewards[0]).text}
+                  {rewardChip(d.rewards?.[0]).text}
                 </span>
               </div>
             );
@@ -143,7 +146,7 @@ export function QuestsScreen() {
         </div>
 
         <ul className="space-y-2">
-          {quests.map((q, i) => {
+          {(quests ?? []).map((q, i) => {
             const ready = !q.claimed && q.progress >= q.goal;
             const chip = rewardChip(q.reward);
             return (

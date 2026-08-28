@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { Check, Copy, Gift, Share2, Users } from 'lucide-react';
 import type { ReferralTier } from '../types/referral';
 import { selectReferralTotals, useGameStore } from '../store/useGameStore';
@@ -20,6 +21,14 @@ const TIER_META: Record<ReferralTier, { rate: number; labelKey: string; hex: str
   2: { rate: 2, labelKey: 'invite.tier2Label', hex: '#06B6D4' },
   3: { rate: 1, labelKey: 'invite.tier3Label', hex: '#A855F7' },
 };
+const FALLBACK_TIER = TIER_META[3];
+const tierMeta = (tier: number) => TIER_META[tier as ReferralTier] ?? FALLBACK_TIER;
+
+const EMPTY_STATS = {
+  l1Count: 0, l2Count: 0, l3Count: 0,
+  l1Earned: 0, l2Earned: 0, l3Earned: 0,
+  unclaimedGram: 0,
+};
 
 function ago(ts: number, t: TFn): string {
   const d = Math.floor((Date.now() - ts) / 86_400_000);
@@ -33,15 +42,18 @@ function ago(ts: number, t: TFn): string {
 export function InviteScreen() {
   const t = useT();
   const code = useGameStore((s) => s.referralCode);
-  const stats = useGameStore((s) => s.referralStats);
-  const friends = useGameStore((s) => s.referralsList);
+  const stats = useGameStore((s) => s.referralStats) ?? EMPTY_STATS;
+  const friends = useGameStore((s) => s.referralsList) ?? [];
   const claimReferralEarnings = useGameStore((s) => s.claimReferralEarnings);
-  const totals = useGameStore(selectReferralTotals);
+  // useShallow: selectReferralTotals returns a fresh object every call — without
+  // shallow equality Zustand v5 loops forever → "Maximum update depth" crash.
+  const totals = useGameStore(useShallow(selectReferralTotals));
 
   const [copied, setCopied] = useState(false);
-  const link = referralLink(code);
+  const link = referralLink(code); // '' when the code isn't loaded yet
 
   const copy = () => {
+    if (!link) return;
     haptic.impact('medium');
     navigator.clipboard?.writeText(link).catch(() => {});
     setCopied(true);
@@ -49,19 +61,20 @@ export function InviteScreen() {
   };
 
   const share = () => {
+    if (!link) return;
     haptic.impact('medium');
     openTelegramShare(link, t('invite.programSub'));
   };
 
   const onClaim = () => {
-    if (stats.unclaimedGram <= 0) return;
+    if ((stats.unclaimedGram ?? 0) <= 0) return;
     fireClaimConfetti();
     haptic.notify('success');
     claimReferralEarnings();
   };
 
   const tierRow = (tier: ReferralTier, count: number, earned: number) => {
-    const m = TIER_META[tier];
+    const m = tierMeta(tier);
     return (
       <div
         key={tier}
@@ -112,7 +125,7 @@ export function InviteScreen() {
             {code}
           </div>
           <div className="mt-1 truncate text-[10px] text-white/40 dir-ltr">
-            t.me/{BOT_USERNAME}?start=ref_{code}
+            t.me/{BOT_USERNAME || 'bot'}?startapp=ref_{code || '…'}
           </div>
         </div>
 
@@ -142,10 +155,10 @@ export function InviteScreen() {
             </div>
             <div className="flex items-center gap-1.5 font-display text-3xl text-neon-yellow text-stroke dir-ltr">
               <GramIcon className="h-7 w-7" />
-              {fmtGram(stats.unclaimedGram)}
+              {fmtGram(stats.unclaimedGram ?? 0)}
             </div>
           </div>
-          <GameButton accent="yellow" disabled={stats.unclaimedGram <= 0} onClick={onClaim}>
+          <GameButton accent="yellow" disabled={(stats.unclaimedGram ?? 0) <= 0} onClick={onClaim}>
             {t('invite.claimReward')}
           </GameButton>
         </div>
@@ -155,9 +168,9 @@ export function InviteScreen() {
       <section>
         <h2 className="mb-2 font-display text-lg text-stroke">{t('invite.threeLines')}</h2>
         <div className="grid grid-cols-3 gap-2">
-          {tierRow(1, stats.l1Count, stats.l1Earned)}
-          {tierRow(2, stats.l2Count, stats.l2Earned)}
-          {tierRow(3, stats.l3Count, stats.l3Earned)}
+          {tierRow(1, stats.l1Count ?? 0, stats.l1Earned ?? 0)}
+          {tierRow(2, stats.l2Count ?? 0, stats.l2Earned ?? 0)}
+          {tierRow(3, stats.l3Count ?? 0, stats.l3Earned ?? 0)}
         </div>
         <div className="mt-2 flex gap-2">
           <div className="flex-1 rounded-2xl border-2 border-black bg-farm-deep px-3 py-2 text-center">
@@ -177,14 +190,14 @@ export function InviteScreen() {
       {/* ===== FRIENDS LIST ===== */}
       <section>
         <h2 className="mb-2 font-display text-lg text-stroke">{t('invite.invitedFriends')}</h2>
-        {friends.length === 0 ? (
+        {(friends ?? []).length === 0 ? (
           <div className="grid place-items-center rounded-3xl border-2 border-dashed border-white/20 bg-farm-card/40 px-4 py-10 text-center">
             <div className="text-4xl">🫂</div>
             <div className="mt-2 max-w-[30ch] text-xs text-white/50">{t('invite.emptyState')}</div>
           </div>
         ) : (
           <ul className="space-y-2">
-            {friends.map((f, i) => (
+            {(friends ?? []).map((f, i) => (
               <motion.li
                 key={f.id}
                 initial={{ opacity: 0, x: -12 }}
@@ -201,7 +214,7 @@ export function InviteScreen() {
                     <span className="truncate text-sm font-bold">{f.handle}</span>
                     <span
                       className="rounded border-2 border-black px-1 text-[8px] font-extrabold leading-3 text-black"
-                      style={{ backgroundColor: TIER_META[f.tier].hex }}
+                      style={{ backgroundColor: tierMeta(f.tier).hex }}
                     >
                       L{f.tier}
                     </span>
