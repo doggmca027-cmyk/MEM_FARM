@@ -11,7 +11,7 @@
 // Secrets:
 //   BOT_TOKEN                  – Telegram bot token
 //   NOTIFY_SECRET             – shared secret protecting this endpoint
-//   TMA_URL                   – link the inline button opens (defaults to t.me/<bot>)
+//   BOT_USERNAME              – bot @username (no @); inline button opens its Mini App
 //   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY – auto-injected
 //
 // Schedule (SQL, pg_cron):
@@ -26,7 +26,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const BOT_TOKEN = Deno.env.get('BOT_TOKEN') ?? '';
 const NOTIFY_SECRET = Deno.env.get('NOTIFY_SECRET') ?? '';
-const TMA_URL = Deno.env.get('TMA_URL') ?? 'https://t.me';
+// Inline-button target — ALWAYS the bot's own Mini App via the `startapp` deep
+// link. Never a t.me channel / group (that was the old bug: a stale TMA_URL
+// pointed the button at a public channel). Built purely from the bot username.
+const BOT_USERNAME = (Deno.env.get('BOT_USERNAME') ?? 'MeM_FARMbot').replace(/^@+/, '').trim();
+const TMA_URL = `https://t.me/${BOT_USERNAME}?startapp`;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
