@@ -317,7 +317,7 @@ interface GameStore {
   dismissReveal: () => void;
 
   /** Study: spend GRAM → +level, income ×2, power ×1.5. Live path: `study_upgrade_character`. */
-  upgradeCharacter: (characterId: string) => void;
+  upgradeCharacter: (characterId: string) => Promise<void>;
   /** Risk/Reward merge of 2 same-name, same-level cards → sets `mergeResult`. Live: `merge_user_characters`. */
   mergeCharacters: (name: string, level: number) => void;
   dismissMergeResult: () => void;

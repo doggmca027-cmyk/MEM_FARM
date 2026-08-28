@@ -33,6 +33,7 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -50,13 +51,18 @@ export function StudyModal({ open, onClose, characterId = null }: Props) {
     ? characterPower(selected.basePower, selected.level, selected.studyLevel + 1)
     : 0;
 
-  const doUpgrade = () => {
-    if (!selected || !canAfford) return;
-    upgradeCharacter(selected.id);
-    firePop();
-    haptic.notify('success');
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 700);
+  const doUpgrade = async () => {
+    if (!selected || !canAfford || busy) return;
+    setBusy(true);
+    try {
+      await upgradeCharacter(selected.id);
+      firePop();
+      haptic.notify('success');
+      setFlash(true);
+      window.setTimeout(() => setFlash(false), 700);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

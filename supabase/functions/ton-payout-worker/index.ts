@@ -51,7 +51,8 @@ function json(body: unknown, status = 200): Response {
 }
 
 function authorized(req: Request): boolean {
-  if (!WORKER_SECRET) return true;
+  // fail closed — this endpoint moves real funds
+  if (!WORKER_SECRET) return false;
   const h =
     req.headers.get('x-worker-secret') ??
     (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -90,11 +91,14 @@ Deno.serve(async (req) => {
     const dest = String(row.dest_address ?? '');
     const net = Number(row.net_amount ?? 0);
 
+    // ---- phase 1: broadcast. A throw here means NOTHING was sent -> safe to
+    //      fail + refund. Anything after a successful send must NOT auto-refund
+    //      (the transfer may still land) — the row stays PROCESSING for review.
+    let seqnoBefore = 0;
     try {
       if (!dest || net <= 0) throw new Error('bad destination or amount');
-      Address.parse(dest); // validate
-
-      const seqnoBefore: number = await contract.getSeqno();
+      Address.parse(dest);
+      seqnoBefore = await contract.getSeqno();
       await contract.sendTransfer({
         seqno: seqnoBefore,
         secretKey: key.secretKey,
@@ -108,33 +112,41 @@ Deno.serve(async (req) => {
           }),
         ],
       });
+    } catch (e) {
+      await db.rpc('worker_fail_payout', { p_tx_id: txId, p_reason: `broadcast: ${e}` });
+      results.push({ txId, status: 'FAILED', error: String(e) });
+      continue;
+    }
 
-      // wait for the seqno to advance (tx accepted by the network)
-      let confirmed = false;
-      for (let a = 0; a < 20; a++) {
-        await sleep(2500);
+    // ---- phase 2: confirm. On timeout DO NOT refund — leave it PROCESSING.
+    let confirmed = false;
+    for (let a = 0; a < 20; a++) {
+      await sleep(2500);
+      try {
         if ((await contract.getSeqno()) > seqnoBefore) {
           confirmed = true;
           break;
         }
-      }
-      if (!confirmed) throw new Error('payout not confirmed in time');
-
-      // best-effort: last outgoing tx hash from the treasury wallet
-      let hash = `seqno:${seqnoBefore}`;
-      try {
-        const txs = await client.getTransactions(wallet.address, { limit: 1 });
-        if (txs[0]?.hash) hash = txs[0].hash().toString('hex');
       } catch {
-        /* keep the seqno marker */
+        /* transient RPC error — keep polling */
       }
-
-      await db.rpc('worker_complete_payout', { p_tx_id: txId, p_hash: hash });
-      results.push({ txId, status: 'COMPLETED', hash });
-    } catch (e) {
-      await db.rpc('worker_fail_payout', { p_tx_id: txId, p_reason: String(e) });
-      results.push({ txId, status: 'FAILED', error: String(e) });
     }
+
+    if (!confirmed) {
+      // sent but unconfirmed — needs a human to reconcile; no refund
+      results.push({ txId, status: 'PROCESSING', note: 'sent, not confirmed in time — left for review' });
+      continue;
+    }
+
+    let hash = `seqno:${seqnoBefore}`;
+    try {
+      const txs = await client.getTransactions(wallet.address, { limit: 1 });
+      if (txs[0]?.hash) hash = txs[0].hash().toString('hex');
+    } catch {
+      /* keep the seqno marker */
+    }
+    await db.rpc('worker_complete_payout', { p_tx_id: txId, p_hash: hash });
+    results.push({ txId, status: 'COMPLETED', hash });
   }
 
   return json({ processed: results.length, results });
