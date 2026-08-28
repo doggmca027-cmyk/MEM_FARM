@@ -3,10 +3,10 @@ import type { Quest, StreakDay } from '../types/quests';
 /** 7-day daily check-in ladder. Day 7 is the super reward. */
 export const STREAK_DAYS: StreakDay[] = [
   { day: 1, rewards: [{ kind: 'xp', amount: 150 }] },
-  { day: 2, rewards: [{ kind: 'gram', amount: 0.05 }] },
+  { day: 2, rewards: [{ kind: 'gram', amount: 0.03 }] },
   { day: 3, rewards: [{ kind: 'xp', amount: 220 }] },
   { day: 4, rewards: [{ kind: 'xp', amount: 300 }] },
-  { day: 5, rewards: [{ kind: 'gram', amount: 0.03 }] },
+  { day: 5, rewards: [{ kind: 'gram', amount: 0.05 }] },
   { day: 6, rewards: [{ kind: 'gram', amount: 0.12 }] },
   {
     day: 7,

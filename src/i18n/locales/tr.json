@@ -117,7 +117,10 @@
     "waiting": "Rakip bekleniyor · {n} GRAM",
     "cancel": "İptal",
     "openLobbies": "Açık lobiler",
-    "join": "Katıl"
+    "join": "Katıl",
+    "onlineOnly": "PvP yalnızca çevrimiçi — Telegram içinde gerçek oyunculara karşı oyna.",
+    "matchHint": "Açık bir masaya katılırsın ya da kendi masanı açıp rakip beklersin.",
+    "noOpponents": "Bu bahiste açık masa yok — kendi masanı aç."
   },
   "quests": {
     "streakTitle": "Günlük seri",

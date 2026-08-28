@@ -614,6 +614,27 @@ export interface JoinLobbyResult {
 }
 
 /** Open lobbies from other players you can join. */
+export interface LeaderRowRpc {
+  name: string;
+  memeType: string;
+  rating: number;
+  power: number;
+  xp: number;
+}
+
+/** Real-players-only PvP leaderboard (top by XP, then rating). */
+export async function fetchPvpLeaderboard(limit = 20): Promise<LeaderRowRpc[]> {
+  const { data, error } = await client().rpc('pvp_leaderboard', { p_limit: limit });
+  if (error) throw error;
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    name: String(r.handle ?? 'Player'),
+    memeType: String(r.meme_type ?? 'gigachad'),
+    rating: Number(r.rating) || 0,
+    power: Number(r.power) || 0,
+    xp: Number(r.xp) || 0,
+  }));
+}
+
 export async function fetchOpenLobbies(): Promise<LobbyRow[]> {
   const uid = await requireUserId();
   const { data, error } = await client()

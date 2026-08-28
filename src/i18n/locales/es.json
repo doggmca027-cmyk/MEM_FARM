@@ -117,7 +117,10 @@
     "waiting": "Esperando rival · {n} GRAM",
     "cancel": "Cancelar",
     "openLobbies": "Salas abiertas",
-    "join": "Unirse"
+    "join": "Unirse",
+    "onlineOnly": "El PvP es solo online — juega dentro de Telegram contra jugadores reales.",
+    "matchHint": "Te unes a una mesa abierta o abres la tuya y esperas rival.",
+    "noOpponents": "No hay mesas abiertas con esta apuesta — crea la tuya."
   },
   "quests": {
     "streakTitle": "Racha diaria",

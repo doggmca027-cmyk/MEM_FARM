@@ -117,7 +117,10 @@
     "waiting": "Waiting for an opponent · {n} GRAM",
     "cancel": "Cancel",
     "openLobbies": "Open lobbies",
-    "join": "Join"
+    "join": "Join",
+    "onlineOnly": "PvP is online-only — play inside Telegram against real players.",
+    "matchHint": "You join an open table or open your own and wait for an opponent.",
+    "noOpponents": "No open tables at this stake — start your own."
   },
   "quests": {
     "streakTitle": "Daily streak",

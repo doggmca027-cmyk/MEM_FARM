@@ -117,7 +117,10 @@
     "waiting": "Menunggu lawan · {n} GRAM",
     "cancel": "Batal",
     "openLobbies": "Lobi terbuka",
-    "join": "Gabung"
+    "join": "Gabung",
+    "onlineOnly": "PvP hanya online — mainkan di dalam Telegram melawan pemain sungguhan.",
+    "matchHint": "Kamu bergabung ke meja terbuka atau buat sendiri dan tunggu lawan.",
+    "noOpponents": "Tidak ada meja terbuka untuk taruhan ini — buat sendiri."
   },
   "quests": {
     "streakTitle": "Streak harian",

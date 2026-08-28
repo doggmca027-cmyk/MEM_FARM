@@ -9,6 +9,7 @@ import type {
 } from '../types/game';
 import type { Transaction } from '../types/finance';
 import type { BattleResult, Quest, QuestId, RaidOpponent, Reward } from '../types/quests';
+import type { LeaderRow } from '../data/raid';
 import type { ReferralFriend, ReferralStats } from '../types/referral';
 import { round4 } from '../lib/format';
 import { applyDir, isLang, loadLang, saveLang, type LangCode } from '../i18n';
@@ -31,6 +32,7 @@ import {
   DEFAULT_NOTIF_PREFS,
   fetchFarmData,
   fetchOpenLobbies,
+  fetchPvpLeaderboard,
   fetchReferralData,
   fetchTransactions,
   fetchUserProfile,
@@ -282,6 +284,8 @@ interface GameStore {
   pvpLobby: { id: string; stake: number } | null;
   /** Other players' open lobbies you can join (live mode). */
   openLobbies: LobbyRow[];
+  /** Real-players PvP leaderboard (live only). */
+  leaderboard: LeaderRow[];
 
   // referrals
   referralCode: string;
@@ -332,7 +336,9 @@ interface GameStore {
    * Fight a wager duel at `pvpStake`. Mock: resolve instantly vs a bot.
    * Live: join the oldest open lobby that isn't yours, or open one and wait.
    */
-  startWagerBattle: (opponent: RaidOpponent) => Promise<void>;
+  startWagerBattle: () => Promise<void>;
+  /** Load the real-players leaderboard (live only). */
+  fetchLeaderboard: () => Promise<void>;
   /** Live: cancel your own open lobby and refund the stake. */
   cancelLobby: () => Promise<void>;
   /** Live: refresh the joinable-lobby list. */
@@ -402,6 +408,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   pvpStake: 0.25,
   pvpLobby: null,
   openLobbies: [],
+  leaderboard: [],
 
   referralCode: '7H4X9K',
   referralStats: {
@@ -841,30 +848,25 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   setPvpStake: (stake) => set({ pvpStake: stake }),
 
-  startWagerBattle: async (opponent) => {
+  // Find a match against a REAL player: join the oldest open lobby at this
+  // stake, otherwise open one and wait for someone to join. No bots.
+  startWagerBattle: async () => {
     const s = get();
+    if (s.mode !== 'live') return; // PvP is online-only
     const stake = s.pvpStake;
-
-    if (s.mode === 'live') {
-      // try to join the oldest open lobby at this stake; otherwise open one
-      try {
-        const open = (await fetchOpenLobbies()).filter((l) => l.stake === stake);
-        if (open.length > 0) {
-          await get().joinLobby(open[0].id);
-          return;
-        }
-        const lobby = await createPvpLobbyRPC(stake);
-        await refetchLive(set);
-        set({ pvpLobby: { id: lobby.id, stake } });
-      } catch (err) {
-        console.warn('[store] create/join lobby failed:', err);
-      }
-      return;
-    }
-
-    // ----- mock: resolve instantly vs a bot -----
     if (s.balanceGram + 1e-9 < stake) return;
-    set((st) => applyWager(st, opponent));
+    try {
+      const open = (await fetchOpenLobbies()).filter((l) => l.stake === stake);
+      if (open.length > 0) {
+        await get().joinLobby(open[0].id);
+        return;
+      }
+      const lobby = await createPvpLobbyRPC(stake);
+      await refetchLive(set);
+      set({ pvpLobby: { id: lobby.id, stake } });
+    } catch (err) {
+      console.warn('[store] create/join lobby failed:', err);
+    }
   },
 
   joinLobby: async (lobbyId) => {
@@ -925,6 +927,24 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       set({ openLobbies: await fetchOpenLobbies() });
     } catch (err) {
       console.warn('[store] fetchOpenLobbies failed:', err);
+    }
+  },
+
+  fetchLeaderboard: async () => {
+    if (get().mode !== 'live') return;
+    try {
+      const rows = await fetchPvpLeaderboard(20);
+      set({
+        leaderboard: rows.map((r) => ({
+          name: r.name,
+          memeType: (r.memeType as LeaderRow['memeType']) ?? 'gigachad',
+          rating: r.rating,
+          power: r.power,
+          xp: r.xp,
+        })),
+      });
+    } catch (err) {
+      console.warn('[store] fetchPvpLeaderboard failed:', err);
     }
   },
 
@@ -1068,72 +1088,6 @@ function grantRewards(st: GameStore, rewards: Reward[]): Partial<GameStore> {
     tiers,
     incomePerDay,
     farm: { ...st.farm, totalIncomePerDay: incomePerDay },
-  };
-}
-
-// --- wager duel (mock) -----------------------------------------------------
-
-/** Resolve a stake duel locally: debit the stake, credit the payout on a win. */
-function applyWager(st: GameStore, opponent: RaidOpponent): Partial<GameStore> {
-  const stake = st.pvpStake;
-  const pot = pvpPot(stake);
-  const fee = pvpFee(stake);
-  const payout = pvpPayout(stake);
-
-  const userPower = Math.round(
-    flattenCharacters(st.tiers).reduce((sum, c) => sum + c.power, 0),
-  );
-  const winChance = userPower / (userPower + opponent.power || 1);
-  const won = Math.random() < winChance;
-  const delta = pvpRatingDelta(won, winChance);
-  const newRating = Math.max(0, st.pvpRating + delta);
-
-  const t = Date.now();
-  const txs: Transaction[] = [
-    {
-      id: `tx-${t}-s`,
-      type: 'WAGER_STAKE',
-      amount: stake,
-      status: 'COMPLETED',
-      timestamp: t,
-      txHash: mockHash(),
-    },
-  ];
-  let balanceGram = round4(st.balanceGram - stake);
-  if (won) {
-    balanceGram = round4(balanceGram + payout);
-    txs.unshift({
-      id: `tx-${t}-p`,
-      type: 'WAGER_PAYOUT',
-      amount: payout,
-      status: 'COMPLETED',
-      timestamp: t,
-      txHash: mockHash(),
-    });
-  }
-
-  const rewards: Reward[] = [{ kind: 'xp', amount: won ? 150 : 50 }];
-  const battle: BattleResult = {
-    opponent,
-    userPower,
-    won,
-    winChance,
-    ratingDelta: delta,
-    newRating,
-    rewards,
-    stake,
-    pot,
-    fee,
-    payout,
-  };
-
-  return {
-    xp: st.xp + rewards[0].amount,
-    balanceGram,
-    pvpRating: newRating,
-    transactions: [...txs, ...st.transactions],
-    quests: won ? bumpQuests(st.quests, 'raid_win') : st.quests,
-    battle,
   };
 }
 
