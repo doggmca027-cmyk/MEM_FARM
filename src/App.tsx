@@ -9,7 +9,7 @@ import { applyDir } from './i18n';
 const manifestUrl =
   typeof window !== 'undefined'
     ? `${window.location.origin}/tonconnect-manifest.json`
-    : 'https://meme-farm.vercel.app/tonconnect-manifest.json';
+    : 'https://memfarm.vercel.app/tonconnect-manifest.json';
 
 export default function App() {
   const hydrate = useGameStore((s) => s.hydrate);

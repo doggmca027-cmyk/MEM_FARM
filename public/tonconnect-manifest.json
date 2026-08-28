@@ -1,7 +1,7 @@
 {
-  "url": "https://meme-farm.vercel.app",
+  "url": "https://memfarm.vercel.app",
   "name": "Meme Farm TMA",
-  "iconUrl": "https://meme-farm.vercel.app/icon-192.png",
-  "termsOfUseUrl": "https://meme-farm.vercel.app/terms",
-  "privacyPolicyUrl": "https://meme-farm.vercel.app/privacy"
+  "iconUrl": "https://memfarm.vercel.app/icon-192.png",
+  "termsOfUseUrl": "https://memfarm.vercel.app",
+  "privacyPolicyUrl": "https://memfarm.vercel.app"
 }
