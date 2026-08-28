@@ -62,7 +62,7 @@ async function run(): Promise<boolean> {
 
     if (!res.ok) {
       const txt = await safeText(res);
-      lastAuthError = `telegram-auth ${res.status}: ${txt.slice(0, 400)}`;
+      lastAuthError = `telegram-auth ${res.status}: ${txt.slice(0, 1400)}`;
       console.warn('[auth]', lastAuthError);
       return false;
     }
