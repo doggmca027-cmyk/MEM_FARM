@@ -1,0 +1,154 @@
+// Supabase Edge Function — Telegram Bot webhook.
+//
+// Telegram POSTs every update here (set once via setWebhook). We only act on
+// `/start [payload]`: reply with the welcome card + an inline button that opens
+// the Mini App. A `ref_<code>` payload (from t.me/<bot>?start=ref_<code>) is
+// forwarded into the app as ?startapp=ref_<code> so the referral survives.
+//
+// Secrets (supabase secrets set ...):
+//   BOT_TOKEN                     – Telegram bot token
+//   TG_WEBHOOK_SECRET             – matches setWebhook's secret_token
+//   BOT_USERNAME                  – bot @username without @  (default MeM_FARMbot)
+//   WELCOME_GIF_URL              – optional animation/GIF URL for the welcome card
+//   COMMUNITY_URL / CHAT_URL     – optional extra inline buttons
+//
+// Deploy:  supabase functions deploy telegram-bot --no-verify-jwt
+// Wire up: curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+//            -d url=https://<ref>.supabase.co/functions/v1/telegram-bot \
+//            -d secret_token=<TG_WEBHOOK_SECRET> \
+//            -d 'allowed_updates=["message"]'
+
+const BOT_TOKEN = Deno.env.get('BOT_TOKEN') ?? '';
+const WEBHOOK_SECRET = Deno.env.get('TG_WEBHOOK_SECRET') ?? '';
+const BOT_USERNAME = (Deno.env.get('BOT_USERNAME') ?? 'MeM_FARMbot').replace(/^@+/, '').trim();
+const WELCOME_GIF_URL = (Deno.env.get('WELCOME_GIF_URL') ?? '').trim();
+const COMMUNITY_URL = (Deno.env.get('COMMUNITY_URL') ?? '').trim();
+const CHAT_URL = (Deno.env.get('CHAT_URL') ?? '').trim();
+
+type Lang = 'uk' | 'ru' | 'en';
+
+const COPY: Record<Lang, { text: string; play: string; community: string; chat: string }> = {
+  uk: {
+    text:
+      '🧠 *Meme Farm — ферма мемів на TON*\n\n' +
+      'Заводь свою мем-ферму: збирай GRAM щовісім годин, прокачуй карти, ' +
+      'бийся в PvP на ставки й тягни друзів у реферальну мережу.\n\n' +
+      'Тисни «Грати» — і поїхали! 🚜',
+    play: '🚜 Грати',
+    community: '📣 Спільнота',
+    chat: '💬 Чат',
+  },
+  ru: {
+    text:
+      '🧠 *Meme Farm — ферма мемов на TON*\n\n' +
+      'Заводи свою мем-ферму: собирай GRAM каждые восемь часов, прокачивай карты, ' +
+      'дерись в PvP на ставки и веди друзей в реферальную сеть.\n\n' +
+      'Жми «Играть» — погнали! 🚜',
+    play: '🚜 Играть',
+    community: '📣 Сообщество',
+    chat: '💬 Чат',
+  },
+  en: {
+    text:
+      '🧠 *Meme Farm — a meme farm on TON*\n\n' +
+      'Start your meme farm: harvest GRAM every eight hours, level up cards, ' +
+      'fight wager PvP and pull friends into your referral network.\n\n' +
+      'Hit “Play” and let’s go! 🚜',
+    play: '🚜 Play',
+    community: '📣 Community',
+    chat: '💬 Chat',
+  },
+};
+
+function pickLang(code: unknown): Lang {
+  const c = typeof code === 'string' ? code.slice(0, 2).toLowerCase() : '';
+  if (c === 'uk') return 'uk';
+  if (c === 'ru' || c === 'be' || c === 'kk') return 'ru';
+  return 'en';
+}
+
+/** `ref_ABC123` → validated code, else ''. */
+function parseRef(payload: string): string {
+  const m = payload.trim().match(/^ref_([A-Za-z0-9_-]{2,32})$/);
+  return m ? m[1] : '';
+}
+
+async function tg(method: string, body: unknown): Promise<void> {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    /* Telegram retries on non-200; a transient send failure is fine */
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return new Response('ok');
+  if (!BOT_TOKEN) return new Response('not configured', { status: 500 });
+
+  // Reject anything that isn't Telegram calling with the shared secret.
+  if (
+    WEBHOOK_SECRET &&
+    req.headers.get('x-telegram-bot-api-secret-token') !== WEBHOOK_SECRET
+  ) {
+    return new Response('forbidden', { status: 401 });
+  }
+
+  let update: {
+    message?: {
+      chat?: { id?: number };
+      text?: string;
+      from?: { language_code?: string };
+    };
+  };
+  try {
+    update = await req.json();
+  } catch {
+    return new Response('ok'); // ack malformed updates so Telegram stops retrying
+  }
+
+  const msg = update.message;
+  const chatId = msg?.chat?.id;
+  const text = (msg?.text ?? '').trim();
+
+  // Only react to /start (optionally "/start <payload>"); ack everything else.
+  if (chatId && /^\/start(@\w+)?(\s|$)/.test(text)) {
+    const payload = text.replace(/^\/start(@\w+)?\s*/, '');
+    const ref = parseRef(payload);
+    const startApp = ref
+      ? `https://t.me/${BOT_USERNAME}?startapp=ref_${ref}`
+      : `https://t.me/${BOT_USERNAME}?startapp`;
+
+    const c = COPY[pickLang(msg?.from?.language_code)];
+    const rows: { text: string; url: string }[][] = [[{ text: c.play, url: startApp }]];
+    const extra: { text: string; url: string }[] = [];
+    if (COMMUNITY_URL) extra.push({ text: c.community, url: COMMUNITY_URL });
+    if (CHAT_URL) extra.push({ text: c.chat, url: CHAT_URL });
+    if (extra.length) rows.push(extra);
+
+    const reply_markup = { inline_keyboard: rows };
+
+    if (WELCOME_GIF_URL) {
+      await tg('sendAnimation', {
+        chat_id: chatId,
+        animation: WELCOME_GIF_URL,
+        caption: c.text,
+        parse_mode: 'Markdown',
+        reply_markup,
+      });
+    } else {
+      await tg('sendMessage', {
+        chat_id: chatId,
+        text: c.text,
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+        reply_markup,
+      });
+    }
+  }
+
+  return new Response('ok');
+});
