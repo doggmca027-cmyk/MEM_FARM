@@ -18,14 +18,18 @@
 //            -d secret_token=<TG_WEBHOOK_SECRET> \
 //            -d 'allowed_updates=["message"]'
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
 const BOT_TOKEN = Deno.env.get('BOT_TOKEN') ?? '';
 const WEBHOOK_SECRET = Deno.env.get('TG_WEBHOOK_SECRET') ?? '';
 const BOT_USERNAME = (Deno.env.get('BOT_USERNAME') ?? 'MeM_FARMbot').replace(/^@+/, '').trim();
 const WELCOME_GIF_URL = (Deno.env.get('WELCOME_GIF_URL') ?? '').trim();
 const COMMUNITY_URL = (Deno.env.get('COMMUNITY_URL') ?? '').trim();
 const CHAT_URL = (Deno.env.get('CHAT_URL') ?? '').trim();
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-type Lang = 'uk' | 'ru' | 'en';
+type Lang = 'uk' | 'ru' | 'en' | 'kk' | 'id' | 'es' | 'tr' | 'ar' | 'fa';
 
 const COPY: Record<Lang, { text: string; play: string; community: string; chat: string }> = {
   uk: {
@@ -58,13 +62,92 @@ const COPY: Record<Lang, { text: string; play: string; community: string; chat: 
     community: '📣 Community',
     chat: '💬 Chat',
   },
+  kk: {
+    text:
+      '🧠 *Meme Farm — TON-дағы мем фермасы*\n\n' +
+      'Өз мем-фермаңды баста: әр сегіз сағат сайын GRAM жина, карталарды соқ, ' +
+      'ставкаға PvP ойна және достарыңды реферал желісіне тарт.\n\n' +
+      '«Ойнау» батырмасын бас — кеттік! 🚜',
+    play: '🚜 Ойнау',
+    community: '📣 Қауымдастық',
+    chat: '💬 Чат',
+  },
+  id: {
+    text:
+      '🧠 *Meme Farm — farm meme di TON*\n\n' +
+      'Mulai meme farm-mu: panen GRAM tiap delapan jam, tingkatkan kartu, ' +
+      'main PvP taruhan dan ajak teman ke jaringan referral.\n\n' +
+      'Tekan «Main» — ayo! 🚜',
+    play: '🚜 Main',
+    community: '📣 Komunitas',
+    chat: '💬 Chat',
+  },
+  es: {
+    text:
+      '🧠 *Meme Farm — una granja de memes en TON*\n\n' +
+      'Empieza tu granja de memes: cosecha GRAM cada ocho horas, mejora cartas, ' +
+      'juega PvP con apuestas y trae amigos a tu red de referidos.\n\n' +
+      'Pulsa «Jugar» — ¡vamos! 🚜',
+    play: '🚜 Jugar',
+    community: '📣 Comunidad',
+    chat: '💬 Chat',
+  },
+  tr: {
+    text:
+      '🧠 *Meme Farm — TON üzerinde meme çiftliği*\n\n' +
+      'Meme çiftliğini kur: her sekiz saatte GRAM topla, kartları güçlendir, ' +
+      'bahisli PvP oyna ve arkadaşlarını referans ağına çek.\n\n' +
+      '«Oyna»ya bas — hadi! 🚜',
+    play: '🚜 Oyna',
+    community: '📣 Topluluk',
+    chat: '💬 Sohbet',
+  },
+  ar: {
+    text:
+      '🧠 *Meme Farm — مزرعة ميمات على TON*\n\n' +
+      'ابدأ مزرعة الميمات: اجمع GRAM كل ثماني ساعات، طوّر البطاقات، ' +
+      'العب PvP بالرهانات وادعُ أصدقاءك إلى شبكة الإحالة.\n\n' +
+      'اضغط «العب» — هيا بنا! 🚜',
+    play: '🚜 العب',
+    community: '📣 المجتمع',
+    chat: '💬 الدردشة',
+  },
+  fa: {
+    text:
+      '🧠 *Meme Farm — مزرعهٔ میم روی TON*\n\n' +
+      'مزرعهٔ میمت را شروع کن: هر هشت ساعت GRAM جمع کن، کارت‌ها را ارتقا بده، ' +
+      'PvP شرطی بازی کن و دوستانت را به شبکهٔ معرفی بیاور.\n\n' +
+      'روی «بازی» بزن — بزن بریم! 🚜',
+    play: '🚜 بازی',
+    community: '📣 انجمن',
+    chat: '💬 چت',
+  },
 };
+
+const KNOWN: Lang[] = ['uk', 'ru', 'en', 'kk', 'id', 'es', 'tr', 'ar', 'fa'];
 
 function pickLang(code: unknown): Lang {
   const c = typeof code === 'string' ? code.slice(0, 2).toLowerCase() : '';
-  if (c === 'uk') return 'uk';
-  if (c === 'ru' || c === 'be' || c === 'kk') return 'ru';
+  if ((KNOWN as string[]).includes(c)) return c as Lang;
+  if (c === 'be') return 'ru';
   return 'en';
+}
+
+/** The app language the user picked (profiles.notif_prefs.lang), by telegram id. */
+async function storedLang(telegramId: number): Promise<Lang | null> {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return null;
+  try {
+    const db = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const { data } = await db
+      .from('profiles')
+      .select('notif_prefs')
+      .eq('telegram_id', telegramId)
+      .maybeSingle();
+    const l = (data?.notif_prefs as { lang?: string } | null)?.lang;
+    return l && (KNOWN as string[]).includes(l) ? (l as Lang) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** `ref_ABC123` → validated code, else ''. */
@@ -101,7 +184,7 @@ Deno.serve(async (req) => {
     message?: {
       chat?: { id?: number };
       text?: string;
-      from?: { language_code?: string };
+      from?: { id?: number; language_code?: string };
     };
   };
   try {
@@ -122,7 +205,13 @@ Deno.serve(async (req) => {
       ? `https://t.me/${BOT_USERNAME}?startapp=ref_${ref}`
       : `https://t.me/${BOT_USERNAME}?startapp`;
 
-    const c = COPY[pickLang(msg?.from?.language_code)];
+    // prefer the language the user picked inside the app; fall back to their
+    // Telegram client language for first-time contacts (no profile yet)
+    const fromId = Number(msg?.from?.id);
+    const lang =
+      (Number.isFinite(fromId) && fromId > 0 ? await storedLang(fromId) : null) ??
+      pickLang(msg?.from?.language_code);
+    const c = COPY[lang];
     const rows: { text: string; url: string }[][] = [[{ text: c.play, url: startApp }]];
     const extra: { text: string; url: string }[] = [];
     if (COMMUNITY_URL) extra.push({ text: c.community, url: COMMUNITY_URL });

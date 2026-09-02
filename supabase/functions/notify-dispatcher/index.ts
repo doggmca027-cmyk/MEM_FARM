@@ -398,7 +398,9 @@ Deno.serve(async (req) => {
 
     if (prof?.telegram_id && prefsAllow(prof.notif_prefs, type as NotifType)) {
       const meta = ((e as Record<string, unknown>).metadata as Record<string, unknown>) ?? {};
-      const lang = pickLang(meta.lang ?? prof.notif_prefs?.lang);
+      // the language the user currently has selected wins over whatever was
+      // stamped on the event when it was enqueued
+      const lang = pickLang(prof.notif_prefs?.lang ?? meta.lang);
       const { text, button } = buildMessage(type as NotifType, meta, lang);
       ok = await sendTelegram(prof.telegram_id, text, button);
       await db.from('notification_logs').insert({ user_id: uid, type, status: ok ? 'SENT' : 'FAILED' });
