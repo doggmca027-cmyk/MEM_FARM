@@ -15,6 +15,12 @@ import type {
   AmbassadorStatRow,
   AmbStatus,
 } from '../types/ambassador';
+import type {
+  AdminSupportThread,
+  SupportMessage,
+  SupportSender,
+  SupportStatus,
+} from '../types/support';
 import { TIER_COST, TIER_IDS, farmEarnCap } from '../data/tiers';
 import { readTelegramUser } from '../telegram/telegram';
 import type { Transaction, TransactionStatus, TransactionType } from '../types/finance';
@@ -915,6 +921,103 @@ export async function adminGetAmbassadorStats(): Promise<AmbassadorStatRow[]> {
     l2DepositTotal: num(r.l2_deposit_total),
     l3DepositTotal: num(r.l3_deposit_total),
   }));
+}
+
+// --- support chat (user) --------------------------------------------------
+
+export interface MySupportData {
+  status: SupportStatus;
+  messages: SupportMessage[];
+}
+
+export async function fetchMySupport(): Promise<MySupportData> {
+  const uid = await requireUserId();
+  const db = client();
+  const [thRes, msgRes] = await Promise.all([
+    db.from('support_threads').select('status').eq('user_id', uid).maybeSingle(),
+    db
+      .from('support_messages')
+      .select('id, sender, body, created_at')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: true }),
+  ]);
+  if (msgRes.error) throw msgRes.error;
+  return {
+    status: ((thRes.data?.status as SupportStatus) ?? 'OPEN'),
+    messages: ((msgRes.data ?? []) as Record<string, unknown>[]).map((m) => ({
+      id: String(m.id),
+      sender: m.sender as SupportSender,
+      body: String(m.body),
+      createdAt: ms(m.created_at as string),
+    })),
+  };
+}
+
+export async function sendSupportMessage(body: string): Promise<void> {
+  const { error } = await client().rpc('support_send', { p_body: body });
+  if (error) throw error;
+}
+
+export async function markSupportRead(): Promise<void> {
+  const { error } = await client().rpc('support_mark_read');
+  if (error) throw error;
+}
+
+// --- support chat (admin) -----------------------------------------------
+
+export async function adminSupportThreads(): Promise<AdminSupportThread[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_support_threads', { p_admin_id: uid });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    userId: String(r.user_id),
+    username: (r.username as string) ?? null,
+    firstName: (r.first_name as string) ?? null,
+    telegramId: r.telegram_id != null ? Number(r.telegram_id) : null,
+    status: (r.status as SupportStatus) ?? 'OPEN',
+    lastMessageAt: ms(r.last_message_at as string),
+    lastPreview: String(r.last_preview ?? ''),
+    lastSender: (r.last_sender as SupportSender) ?? 'USER',
+    unreadAdmin: Number(r.unread_admin) || 0,
+  }));
+}
+
+export async function adminSupportMessages(userId: string): Promise<SupportMessage[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_support_messages', {
+    p_admin_id: uid,
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((m) => ({
+    id: String(m.id),
+    sender: m.sender as SupportSender,
+    body: String(m.body),
+    createdAt: ms(m.created_at as string),
+  }));
+}
+
+export async function adminSupportReply(userId: string, body: string): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client().rpc('admin_support_reply', {
+    p_admin_id: uid,
+    p_user_id: userId,
+    p_body: body,
+  });
+  if (error) throw error;
+}
+
+export async function adminSupportSetStatus(
+  userId: string,
+  status: SupportStatus,
+): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client().rpc('admin_support_set_status', {
+    p_admin_id: uid,
+    p_user_id: userId,
+    p_status: status,
+  });
+  if (error) throw error;
 }
 
 export async function fetchTransactions(limit = 50): Promise<Transaction[]> {

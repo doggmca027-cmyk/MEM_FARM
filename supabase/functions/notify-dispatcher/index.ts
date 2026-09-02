@@ -40,13 +40,14 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-type NotifType = 'FARM_READY' | 'PVP_ATTACK' | 'REFERRAL_INCOME' | 'DEPOSIT';
+type NotifType = 'FARM_READY' | 'PVP_ATTACK' | 'REFERRAL_INCOME' | 'DEPOSIT' | 'SUPPORT_REPLY';
 
 const PREF_KEY: Record<NotifType, string> = {
   FARM_READY: 'farm_ready',
   PVP_ATTACK: 'pvp_attack',
   REFERRAL_INCOME: 'referral_income',
   DEPOSIT: 'deposit',
+  SUPPORT_REPLY: 'support_reply',
 };
 
 function json(body: unknown, status = 200): Response {
@@ -65,6 +66,8 @@ function authorized(req: Request): boolean {
 }
 
 function prefsAllow(prefs: Record<string, unknown> | null, type: NotifType): boolean {
+  // a direct reply to the user's own support question always goes through
+  if (type === 'SUPPORT_REPLY') return true;
   return prefs?.[PREF_KEY[type]] !== false;
 }
 
@@ -85,6 +88,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
       text: '💸 *Реферальний дохід!*\n\nТобі нараховано `{amount}` GRAM (L{level}). Забери на вкладці «Frens».',
       button: '💸 Відкрити',
     },
+    SUPPORT_REPLY: {
+      text: '🛟 *Відповідь підтримки*\n\n{preview}\n\nВідкрий застосунок, щоб продовжити діалог.',
+      button: '🛟 Відкрити чат',
+    },
     PVP_ATTACK: {
       text: '⚔️ *На тебе напали в рейді!*\n\nСуперник переміг у набігу. Час на реванш!',
       button: '⚔️ У бій',
@@ -102,6 +109,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     REFERRAL_INCOME: {
       text: '💸 *Referral income!*\n\nYou earned `{amount}` GRAM (L{level}). Claim it on the “Frens” tab.',
       button: '💸 Open',
+    },
+    SUPPORT_REPLY: {
+      text: '🛟 *Support reply*\n\n{preview}\n\nOpen the app to continue the conversation.',
+      button: '🛟 Open chat',
     },
     PVP_ATTACK: {
       text: '⚔️ *You were raided!*\n\nAn opponent beat you in a raid. Time for a rematch!',
@@ -121,6 +132,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
       text: '💸 *Реферальный доход!*\n\nТебе начислено `{amount}` GRAM (L{level}). Забери на вкладке «Frens».',
       button: '💸 Открыть',
     },
+    SUPPORT_REPLY: {
+      text: '🛟 *Ответ поддержки*\n\n{preview}\n\nОткрой приложение, чтобы продолжить диалог.',
+      button: '🛟 Открыть чат',
+    },
     PVP_ATTACK: {
       text: '⚔️ *На тебя напали в рейде!*\n\nСоперник победил в набеге. Время для реванша!',
       button: '⚔️ В бой',
@@ -138,6 +153,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     REFERRAL_INCOME: {
       text: '💸 *Реферал табысы!*\n\nСаған `{amount}` GRAM (L{level}) есептелді. «Frens» қойындысынан ал.',
       button: '💸 Ашу',
+    },
+    SUPPORT_REPLY: {
+      text: '🛟 *Қолдау жауабы*\n\n{preview}\n\nСұхбатты жалғастыру үшін қолданбаны аш.',
+      button: '🛟 Чатты ашу',
     },
     PVP_ATTACK: {
       text: '⚔️ *Рейдте саған шабуыл жасалды!*\n\nҚарсылас жеңіп кетті. Реванш кезі!',
@@ -157,6 +176,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
       text: '💸 *Pendapatan referral!*\n\nKamu memperoleh `{amount}` GRAM (L{level}). Ambil di tab “Frens”.',
       button: '💸 Buka',
     },
+    SUPPORT_REPLY: {
+      text: '🛟 *Balasan dukungan*\n\n{preview}\n\nBuka aplikasi untuk melanjutkan percakapan.',
+      button: '🛟 Buka chat',
+    },
     PVP_ATTACK: {
       text: '⚔️ *Kamu diserang di raid!*\n\nLawan mengalahkanmu. Saatnya tanding ulang!',
       button: '⚔️ Bertarung',
@@ -174,6 +197,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     REFERRAL_INCOME: {
       text: '💸 *¡Ingresos por referidos!*\n\nGanaste `{amount}` GRAM (L{level}). Reclámalos en la pestaña «Frens».',
       button: '💸 Abrir',
+    },
+    SUPPORT_REPLY: {
+      text: '🛟 *Respuesta de soporte*\n\n{preview}\n\nAbre la app para continuar la conversación.',
+      button: '🛟 Abrir chat',
     },
     PVP_ATTACK: {
       text: '⚔️ *¡Te asaltaron en un raid!*\n\nUn rival te venció. ¡Hora de la revancha!',
@@ -193,6 +220,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
       text: '💸 *Referans geliri!*\n\n`{amount}` GRAM (L{level}) kazandın. “Frens” sekmesinden al.',
       button: '💸 Aç',
     },
+    SUPPORT_REPLY: {
+      text: '🛟 *Destek yanıtı*\n\n{preview}\n\nGörüşmeye devam etmek için uygulamayı aç.',
+      button: '🛟 Sohbeti aç',
+    },
     PVP_ATTACK: {
       text: '⚔️ *Bir akında saldırıya uğradın!*\n\nBir rakip seni yendi. Rövanş zamanı!',
       button: '⚔️ Savaş',
@@ -211,6 +242,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
       text: '💸 *دخل الإحالة!*\n\nحصلت على `{amount}` GRAM (المستوى {level}). استلمه من تبويب «Frens».',
       button: '💸 فتح',
     },
+    SUPPORT_REPLY: {
+      text: '🛟 *رد الدعم*\n\n{preview}\n\nافتح التطبيق لمتابعة المحادثة.',
+      button: '🛟 فتح المحادثة',
+    },
     PVP_ATTACK: {
       text: '⚔️ *تعرّضت لهجوم في الغارة!*\n\nهزمك خصم في غارة. حان وقت الثأر!',
       button: '⚔️ قتال',
@@ -228,6 +263,10 @@ const TEMPLATES: Record<Lang, Record<NotifType, { text: string; button: string }
     REFERRAL_INCOME: {
       text: '💸 *درآمد معرفی!*\n\n`{amount}` GRAM (سطح {level}) کسب کردی. از تب «Frens» دریافت کن.',
       button: '💸 باز کردن',
+    },
+    SUPPORT_REPLY: {
+      text: '🛟 *پاسخ پشتیبانی*\n\n{preview}\n\nبرای ادامهٔ گفتگو برنامه را باز کن.',
+      button: '🛟 باز کردن چت',
     },
     PVP_ATTACK: {
       text: '⚔️ *در یک یورش به تو حمله شد!*\n\nحریفی تو را شکست داد. وقت انتقام است!',
@@ -248,7 +287,8 @@ function buildMessage(
   const tpl = TEMPLATES[lang]?.[type] ?? TEMPLATES.uk[type];
   const text = tpl.text
     .replace(/\{amount\}/g, String(meta.amount ?? '?'))
-    .replace(/\{level\}/g, String(meta.level ?? '?'));
+    .replace(/\{level\}/g, String(meta.level ?? '?'))
+    .replace(/\{preview\}/g, String(meta.preview ?? ''));
   return { text, button: tpl.button };
 }
 

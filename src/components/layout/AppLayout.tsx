@@ -13,6 +13,7 @@ import { WalletScreen } from '../../screens/WalletScreen';
 import { AmbassadorScreen } from '../../screens/AmbassadorScreen';
 import { AdminScreen } from '../../screens/AdminScreen';
 import { SettingsModal } from '../settings/SettingsModal';
+import { SupportModal } from '../support/SupportModal';
 
 const SCREENS: Record<NavTab, () => ReactNode> = {
   quests: () => <QuestsScreen />,
@@ -60,6 +61,7 @@ export function AppLayout() {
       <BottomNav />
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SupportModal />
       {adminOpen && isAdmin && <AdminScreen />}
       <Toast />
     </div>

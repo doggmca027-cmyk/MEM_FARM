@@ -290,5 +290,17 @@
     "nothingToClaim": "Nothing to claim",
     "mergeNeedTwo": "Need 2 identical cards of the same level",
     "badAddress": "Invalid wallet address"
+  },
+  "support": {
+    "section": "Support",
+    "openBtn": "Contact support",
+    "openHint": "A question, a payment issue or a bug — write here. The reply lands on this screen and in the bot chat.",
+    "title": "Support",
+    "inputPlaceholder": "Describe your issue…",
+    "empty": "Send the first message — we will reply.",
+    "onlineOnly": "Sign in via Telegram to contact support.",
+    "closedHint": "This ticket is closed — a new message reopens it",
+    "you": "You",
+    "team": "Support"
   }
 }

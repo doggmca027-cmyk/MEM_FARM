@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Ban, Check, Copy, Crown, ExternalLink, Search, ShieldCheck, X } from 'lucide-react';
+import { Ban, Check, Copy, Crown, ExternalLink, Search, Send, ShieldCheck, X } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import {
   adminFetchMetrics,
@@ -12,6 +12,10 @@ import {
   adminListWithdrawals,
   adminSetAmbassadorApplicationStatus,
   adminSetAmbassadorPostStatus,
+  adminSupportMessages,
+  adminSupportReply,
+  adminSupportSetStatus,
+  adminSupportThreads,
   adminUserDetail,
 } from '../services/api';
 import type { AdminMetrics, AdminUserDetail, AdminUserRow, WithdrawalRequest } from '../types/admin';
@@ -20,13 +24,14 @@ import type {
   AdminAmbassadorPost,
   AmbassadorStatRow,
 } from '../types/ambassador';
+import type { AdminSupportThread, SupportMessage } from '../types/support';
 import { EMISSION_FACTORS } from '../types/admin';
 import { fmtDateTime, fmtGram } from '../lib/format';
 import { haptic } from '../lib/haptics';
 import { GameButton } from '../components/ui/GameButton';
 import { GramIcon } from '../components/icons/Icons';
 
-type Tab = 'queue' | 'economy' | 'users' | 'amb_apps' | 'amb_posts' | 'amb_stats';
+type Tab = 'queue' | 'economy' | 'users' | 'support' | 'amb_apps' | 'amb_posts' | 'amb_stats';
 
 export function AdminScreen() {
   const setAdminOpen = useGameStore((s) => s.setAdminOpen);
@@ -64,6 +69,9 @@ export function AdminScreen() {
         <TabBtn active={tab === 'users'} onClick={() => setTab('users')}>
           Юзери
         </TabBtn>
+        <TabBtn active={tab === 'support'} onClick={() => setTab('support')}>
+          Підтримка
+        </TabBtn>
         <TabBtn active={tab === 'amb_apps'} onClick={() => setTab('amb_apps')}>
           Амб · Заявки
         </TabBtn>
@@ -79,6 +87,7 @@ export function AdminScreen() {
         {tab === 'queue' && <QueueTab />}
         {tab === 'economy' && <EconomyTab />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'support' && <SupportTab />}
         {tab === 'amb_apps' && <AmbAppsTab />}
         {tab === 'amb_posts' && <AmbPostsTab />}
         {tab === 'amb_stats' && <AmbStatsTab />}
@@ -623,6 +632,225 @@ function UsersTab() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============ TAB — SUPPORT (chat per user) ============
+
+function SupportTab() {
+  const [threads, setThreads] = useState<AdminSupportThread[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [openUid, setOpenUid] = useState<string | null>(null);
+
+  const loadThreads = useCallback(async () => {
+    setErr(null);
+    try {
+      setThreads(await adminSupportThreads());
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      setThreads([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadThreads();
+  }, [loadThreads]);
+
+  if (openUid) {
+    const th = threads?.find((t) => t.userId === openUid) ?? null;
+    return (
+      <SupportConversation
+        userId={openUid}
+        thread={th}
+        onBack={() => {
+          setOpenUid(null);
+          void loadThreads();
+        }}
+      />
+    );
+  }
+
+  if (threads === null) return <Loading />;
+
+  return (
+    <div className="space-y-2">
+      {err && <ErrBox msg={err} />}
+      {threads.length === 0 ? (
+        <Empty text="Немає звернень" />
+      ) : (
+        threads.map((t) => (
+          <button
+            key={t.userId}
+            onClick={() => setOpenUid(t.userId)}
+            className="flex w-full items-center gap-2 rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/80 p-3 text-left"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm font-bold">
+                  {t.username ? `@${t.username}` : t.firstName ?? 'anon'}
+                </span>
+                {t.status === 'CLOSED' && (
+                  <span className="rounded border border-black bg-farm-deep px-1 text-[8px] font-extrabold uppercase text-white/50">
+                    закрито
+                  </span>
+                )}
+                {t.unreadAdmin > 0 && (
+                  <span className="rounded-full border-2 border-black bg-neon-pink px-1.5 text-[9px] font-extrabold text-white">
+                    {t.unreadAdmin}
+                  </span>
+                )}
+              </div>
+              <div className="truncate text-[11px] text-white/45">
+                {t.lastSender === 'ADMIN' ? 'Ви: ' : ''}
+                {t.lastPreview}
+              </div>
+            </div>
+            <div className="flex-none text-right text-[9px] text-white/35">
+              TG {t.telegramId ?? '—'}
+              <div>{fmtDateTime(t.lastMessageAt)}</div>
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
+function SupportConversation({
+  userId,
+  thread,
+  onBack,
+}: {
+  userId: string;
+  thread: AdminSupportThread | null;
+  onBack: () => void;
+}) {
+  const [msgs, setMsgs] = useState<SupportMessage[] | null>(null);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [closed, setClosed] = useState(thread?.status === 'CLOSED');
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      setMsgs(await adminSupportMessages(userId));
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      setMsgs([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void load();
+    const id = window.setInterval(load, 12000);
+    return () => window.clearInterval(id);
+  }, [load]);
+
+  const send = async () => {
+    const body = text.trim();
+    if (!body || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await adminSupportReply(userId, body);
+      setText('');
+      haptic.notify('success');
+      await load();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleClosed = async () => {
+    const next = closed ? 'OPEN' : 'CLOSED';
+    try {
+      await adminSupportSetStatus(userId, next);
+      setClosed(!closed);
+      haptic.notify('success');
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <button
+          onClick={onBack}
+          className="rounded-xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card px-3 py-1 text-[11px] font-extrabold uppercase text-white/70 active:translate-y-0.5"
+        >
+          ‹ Назад
+        </button>
+        <span className="truncate text-sm font-bold">
+          {thread?.username ? `@${thread.username}` : thread?.firstName ?? userId.slice(0, 8)}
+        </span>
+        <button
+          onClick={toggleClosed}
+          className={[
+            'rounded-xl border-2 border-b-4 border-black border-b-black/40 px-3 py-1 text-[11px] font-extrabold uppercase active:translate-y-0.5',
+            closed ? 'bg-neon-lime text-black' : 'bg-farm-card text-white/70',
+          ].join(' ')}
+        >
+          {closed ? 'Відкрити' : 'Закрити'}
+        </button>
+      </div>
+
+      {err && <ErrBox msg={err} />}
+
+      <div className="flex-1 space-y-2 overflow-y-auto rounded-2xl border-2 border-black bg-farm-deep p-2">
+        {msgs === null ? (
+          <Loading />
+        ) : msgs.length === 0 ? (
+          <Empty text="Порожньо" />
+        ) : (
+          msgs.map((m) => {
+            const admin = m.sender === 'ADMIN';
+            return (
+              <div key={m.id} className={admin ? 'flex justify-end' : 'flex justify-start'}>
+                <div
+                  className={[
+                    'max-w-[80%] rounded-2xl border-2 border-black px-3 py-2 text-[13px] leading-snug',
+                    admin ? 'bg-neon-lime/90 text-black' : 'bg-farm-card text-white',
+                  ].join(' ')}
+                >
+                  <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                  <div className={admin ? 'mt-1 text-[9px] text-black/50' : 'mt-1 text-[9px] text-white/35'}>
+                    {admin ? 'Підтримка' : 'Юзер'} · {fmtDateTime(m.createdAt)}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-2 flex items-end gap-2">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              void send();
+            }
+          }}
+          rows={1}
+          placeholder="Відповідь цьому користувачу…"
+          className="max-h-28 min-h-[40px] flex-1 resize-none rounded-2xl border-2 border-black bg-farm-card px-3 py-2 text-sm text-white outline-none placeholder:text-white/30"
+        />
+        <button
+          onClick={send}
+          disabled={busy || !text.trim()}
+          className="grid h-10 w-10 flex-none place-items-center rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-neon-lime text-black active:translate-y-0.5 disabled:opacity-40"
+        >
+          <Send className="h-4 w-4" strokeWidth={3} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Bell, Flame, Globe, Swords, Users } from 'lucide-react';
+import { Bell, Flame, Globe, LifeBuoy, Swords, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { NotifPrefs } from '../../services/api';
 import { lastAuthError } from '../../services/auth';
@@ -34,6 +34,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const prefs = useGameStore((s) => s.notifPrefs);
   const setNotifPref = useGameStore((s) => s.setNotifPref);
   const mode = useGameStore((s) => s.mode);
+  const setSupportOpen = useGameStore((s) => s.setSupportOpen);
   const isAdmin = useGameStore((s) => s.profile?.isAdmin ?? false);
   const tgId = useGameStore((s) => s.profile?.telegramId ?? null);
   const lang = useGameStore((s) => s.lang);
@@ -124,6 +125,29 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
       <p className="mt-3 text-[10px] text-white/35">
         {mode === 'live' ? t('settings.pushLive') : t('settings.pushDemo')}
       </p>
+
+      {/* support */}
+      <div className="mt-4 mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/50">
+        <LifeBuoy className="h-4 w-4 text-neon-yellow" strokeWidth={3} />
+        {t('support.section')}
+      </div>
+      <button
+        onClick={() => {
+          haptic.select();
+          onClose();
+          setSupportOpen(true);
+        }}
+        className="flex w-full items-center gap-3 rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/80 p-3 text-left"
+      >
+        <span className="grid h-9 w-9 flex-none place-items-center rounded-xl border-2 border-black bg-farm-deep">
+          <LifeBuoy className="h-4 w-4 text-neon-yellow" strokeWidth={3} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-bold">{t('support.openBtn')}</div>
+          <div className="text-[10px] text-white/45">{t('support.openHint')}</div>
+        </div>
+        <span className="flex-none text-white/40">›</span>
+      </button>
 
       {/* diagnostics */}
       <div className="mt-3 space-y-0.5 rounded-xl border-2 border-black bg-farm-deep px-3 py-2 text-[10px] font-mono text-white/45">

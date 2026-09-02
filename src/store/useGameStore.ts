@@ -332,6 +332,7 @@ interface GameStore {
   /** admin panel overlay (only reachable when `profile.isAdmin`). */
   adminOpen: boolean;
   settingsOpen: boolean;
+  supportOpen: boolean;
   /** Transient error/info banner (RPC failures etc). Auto-cleared by <Toast/>. */
   toast: { msg: string; kind: 'error' | 'info' } | null;
   notifPrefs: NotifPrefs;
@@ -388,6 +389,7 @@ interface GameStore {
   claimReferralEarnings: () => void;
 
   setSettingsOpen: (open: boolean) => void;
+  setSupportOpen: (open: boolean) => void;
   /** Show a transient banner. `clearToast` (or <Toast/>'s timer) dismisses it. */
   pushToast: (msg: string, kind?: 'error' | 'info') => void;
   clearToast: () => void;
@@ -485,6 +487,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   invites: 0,
   adminOpen: false,
   settingsOpen: false,
+  supportOpen: false,
   toast: null,
   notifPrefs: { ...DEFAULT_NOTIF_PREFS },
   lang: loadLang(),
@@ -1088,6 +1091,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
 
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+  setSupportOpen: (open) => set({ supportOpen: open }),
   pushToast: (msg, kind = 'error') => set({ toast: { msg, kind } }),
   clearToast: () => set({ toast: null }),
 

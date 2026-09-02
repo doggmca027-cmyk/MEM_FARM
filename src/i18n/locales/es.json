@@ -290,5 +290,17 @@
     "nothingToClaim": "Nada que reclamar",
     "mergeNeedTwo": "Se necesitan 2 cartas idénticas del mismo nivel",
     "badAddress": "Dirección de cartera no válida"
+  },
+  "support": {
+    "section": "Soporte",
+    "openBtn": "Contactar soporte",
+    "openHint": "Una pregunta, un problema de pago o un error — escribe aquí. La respuesta llega a esta pantalla y al chat del bot.",
+    "title": "Soporte",
+    "inputPlaceholder": "Describe tu problema…",
+    "empty": "Envía el primer mensaje — te responderemos.",
+    "onlineOnly": "Inicia sesión con Telegram para contactar soporte.",
+    "closedHint": "Este ticket está cerrado — un mensaje nuevo lo reabre",
+    "you": "Tú",
+    "team": "Soporte"
   }
 }

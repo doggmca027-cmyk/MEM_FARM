@@ -290,5 +290,17 @@
     "nothingToClaim": "Alınacak bir şey yok",
     "mergeNeedTwo": "Aynı seviyeden 2 özdeş kart gerekli",
     "badAddress": "Geçersiz cüzdan adresi"
+  },
+  "support": {
+    "section": "Destek",
+    "openBtn": "Desteğe yaz",
+    "openHint": "Soru, ödeme sorunu veya hata — buraya yaz. Yanıt bu ekrana ve bot sohbetine gelir.",
+    "title": "Destek",
+    "inputPlaceholder": "Sorununu anlat…",
+    "empty": "İlk mesajı gönder — yanıtlayacağız.",
+    "onlineOnly": "Desteğe yazmak için Telegram ile giriş yap.",
+    "closedHint": "Talep kapalı — yeni mesaj yeniden açar",
+    "you": "Sen",
+    "team": "Destek"
   }
 }

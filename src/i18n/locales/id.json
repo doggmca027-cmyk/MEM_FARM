@@ -290,5 +290,17 @@
     "nothingToClaim": "Tidak ada yang bisa diambil",
     "mergeNeedTwo": "Butuh 2 kartu identik dengan level sama",
     "badAddress": "Alamat dompet tidak valid"
+  },
+  "support": {
+    "section": "Dukungan",
+    "openBtn": "Hubungi dukungan",
+    "openHint": "Pertanyaan, masalah pembayaran, atau bug — tulis di sini. Balasan muncul di layar ini dan di chat bot.",
+    "title": "Dukungan",
+    "inputPlaceholder": "Jelaskan masalahmu…",
+    "empty": "Kirim pesan pertama — kami akan membalas.",
+    "onlineOnly": "Masuk lewat Telegram untuk menghubungi dukungan.",
+    "closedHint": "Tiket ditutup — pesan baru membukanya lagi",
+    "you": "Kamu",
+    "team": "Dukungan"
   }
 }
