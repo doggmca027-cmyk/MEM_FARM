@@ -279,5 +279,16 @@
     "errPostLink": "Tempel tautan postingan yang valid",
     "errDuplicate": "Pengajuan sudah dikirim",
     "sent": "Terkirim"
+  },
+  "errors": {
+    "generic": "Aksi gagal — coba lagi",
+    "farmNotReady": "Farm belum siap dipanen",
+    "streakDone": "Hadiah sudah diambil hari ini",
+    "withdrawCooldown": "Penarikan dibatasi 1x per 24 jam",
+    "withdrawMin": "Jumlah di bawah minimum",
+    "insufficient": "GRAM tidak cukup",
+    "nothingToClaim": "Tidak ada yang bisa diambil",
+    "mergeNeedTwo": "Butuh 2 kartu identik dengan level sama",
+    "badAddress": "Alamat dompet tidak valid"
   }
 }

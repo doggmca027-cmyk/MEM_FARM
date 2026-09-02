@@ -12,7 +12,7 @@ import type { BattleResult, Quest, QuestId, RaidOpponent, Reward } from '../type
 import type { LeaderRow } from '../data/raid';
 import type { ReferralFriend, ReferralStats } from '../types/referral';
 import { round4 } from '../lib/format';
-import { applyDir, isLang, loadLang, saveLang, type LangCode } from '../i18n';
+import { applyDir, isLang, loadLang, saveLang, translate, type LangCode } from '../i18n';
 import { isSameUtcDay, utcDaysBetween } from '../lib/time';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { readTelegramUser } from '../telegram/telegram';
@@ -409,11 +409,24 @@ interface GameStore {
 
 const bootTgUser = readTelegramUser();
 
-/** Human-readable one-liner from a thrown RPC / PostgREST error. */
-function rpcErr(err: unknown): string {
+/**
+ * Turn a thrown RPC / PostgREST error into a localized one-liner for the toast.
+ * Known server messages (English, from the SECURITY DEFINER functions) are
+ * mapped to `errors.*`; anything unrecognised falls back to `errors.generic`.
+ */
+function rpcErr(err: unknown, lang: LangCode): string {
   const e = err as { message?: string; hint?: string; details?: string } | null;
-  const raw = e?.message || e?.hint || e?.details || '';
-  return (raw || 'Дію не виконано — спробуйте ще раз').slice(0, 140);
+  const raw = (e?.message || e?.hint || e?.details || '').toLowerCase();
+  const T = (k: string) => translate(lang, `errors.${k}`);
+  if (raw.includes('cooldown')) return T('withdrawCooldown');
+  if (raw.includes('claim not ready')) return T('farmNotReady');
+  if (raw.includes('already checked in')) return T('streakDone');
+  if (raw.includes('minimum withdrawal')) return T('withdrawMin');
+  if (raw.includes('insufficient')) return T('insufficient');
+  if (raw.includes('nothing to claim')) return T('nothingToClaim');
+  if (raw.includes('need 2 duplicates')) return T('mergeNeedTwo');
+  if (raw.includes('invalid wallet address')) return T('badAddress');
+  return T('generic');
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -589,7 +602,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         }));
       } catch (err) {
         console.warn('[store] claim RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -650,7 +663,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         }));
       } catch (err) {
         console.warn('[store] request_withdrawal RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -696,7 +709,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         applyRoll(set, { tier, card, character, balanceOverride: res.newBalanceGram });
       } catch (err) {
         console.warn('[store] rollTier RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -721,7 +734,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         await refetchLive(set);
       } catch (err) {
         console.warn('[store] study_upgrade RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -801,7 +814,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         });
       } catch (err) {
         console.warn('[store] merge_user_characters RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -902,7 +915,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         });
       } catch (err) {
         console.warn('[store] claim_daily_streak failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }
@@ -952,7 +965,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       set({ pvpLobby: { id: lobby.id, stake } });
     } catch (err) {
       console.warn('[store] create/join lobby failed:', err);
-      set({ toast: { msg: rpcErr(err), kind: 'error' } });
+      set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
     }
   },
 
@@ -990,7 +1003,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       }));
     } catch (err) {
       console.warn('[store] join_pvp_lobby failed:', err);
-      set({ toast: { msg: rpcErr(err), kind: 'error' } });
+      set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
     }
   },
 
@@ -1004,7 +1017,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         await refetchLive(set);
       } catch (err) {
         console.warn('[store] cancel_pvp_lobby failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
     }
     set({ pvpLobby: null });
@@ -1058,7 +1071,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         }));
       } catch (err) {
         console.warn('[store] claim_referral_rewards RPC failed:', err);
-        set({ toast: { msg: rpcErr(err), kind: 'error' } });
+        set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
       }
       return;
     }

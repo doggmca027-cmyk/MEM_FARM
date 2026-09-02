@@ -279,5 +279,16 @@
     "refIncomeHint": "When a fren brings you GRAM",
     "pushLive": "Push via the Telegram bot. Changes save instantly.",
     "pushDemo": "Demo mode: settings aren't saved without Telegram sign-in."
+  },
+  "errors": {
+    "generic": "Action failed — try again",
+    "farmNotReady": "Farm is not ready to harvest yet",
+    "streakDone": "Reward already claimed today",
+    "withdrawCooldown": "Withdrawals are limited to once per 24h",
+    "withdrawMin": "Amount is below the minimum",
+    "insufficient": "Not enough GRAM",
+    "nothingToClaim": "Nothing to claim",
+    "mergeNeedTwo": "Need 2 identical cards of the same level",
+    "badAddress": "Invalid wallet address"
   }
 }

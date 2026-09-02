@@ -279,5 +279,16 @@
     "errPostLink": "Geçerli bir gönderi bağlantısı yapıştır",
     "errDuplicate": "Başvuru zaten gönderildi",
     "sent": "Gönderildi"
+  },
+  "errors": {
+    "generic": "İşlem başarısız — tekrar dene",
+    "farmNotReady": "Çiftlik henüz hasada hazır değil",
+    "streakDone": "Ödül bugün zaten alındı",
+    "withdrawCooldown": "Çekim 24 saatte bir yapılabilir",
+    "withdrawMin": "Tutar minimumun altında",
+    "insufficient": "Yeterli GRAM yok",
+    "nothingToClaim": "Alınacak bir şey yok",
+    "mergeNeedTwo": "Aynı seviyeden 2 özdeş kart gerekli",
+    "badAddress": "Geçersiz cüzdan adresi"
   }
 }

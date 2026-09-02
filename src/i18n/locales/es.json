@@ -279,5 +279,16 @@
     "errPostLink": "Pega un enlace de publicación válido",
     "errDuplicate": "La solicitud ya fue enviada",
     "sent": "Enviado"
+  },
+  "errors": {
+    "generic": "La acción falló — inténtalo de nuevo",
+    "farmNotReady": "La granja aún no está lista para cosechar",
+    "streakDone": "La recompensa ya se reclamó hoy",
+    "withdrawCooldown": "Los retiros están limitados a 1 cada 24 h",
+    "withdrawMin": "El importe está por debajo del mínimo",
+    "insufficient": "GRAM insuficiente",
+    "nothingToClaim": "Nada que reclamar",
+    "mergeNeedTwo": "Se necesitan 2 cartas idénticas del mismo nivel",
+    "badAddress": "Dirección de cartera no válida"
   }
 }
