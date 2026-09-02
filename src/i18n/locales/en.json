@@ -4,6 +4,7 @@
     "farm": "Farm",
     "raid": "Raid",
     "invite": "Frens",
+    "ambassador": "Amb.",
     "wallet": "Wallet"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Your Meme Farm",
     "raid": "Meme Raid",
     "invite": "Invite Frens",
+    "ambassador": "MeM Farm Ambassador",
     "wallet": "GRAM Wallet"
   },
   "common": {
@@ -177,7 +179,34 @@
     "QUEST_REWARD": "Quest",
     "REFUND": "Refund",
     "WAGER_STAKE": "PvP stake",
-    "WAGER_PAYOUT": "PvP payout"
+    "WAGER_PAYOUT": "PvP payout",
+    "AMBASSADOR_REWARD": "Ambassador"
+  },
+  "ambassador": {
+    "title": "Ambassador program",
+    "onlineOnly": "Sign in via Telegram to become an ambassador.",
+    "applyTitle": "Apply with your channel",
+    "applyIntro": "If you have more than 1000 subscribers, you can become a MeM Farm ambassador. Add the bot as a channel admin.",
+    "applyNote": "Once your application is approved, a promo deposit is credited to your balance.",
+    "channelPlaceholder": "Channel link or @channel",
+    "contactPlaceholder": "Your username for contact",
+    "submitApplication": "Send application",
+    "statusPending": "Under review",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "reapply": "Application rejected. You can submit a new one.",
+    "approvedNote": "You are an ambassador. The promo deposit is credited manually after we review the channel.",
+    "postsTitle": "Publication reports",
+    "postsIntro": "Paste the link only. We will verify the post went live.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Submit for review",
+    "postsEmpty": "No reports submitted yet.",
+    "needApproved": "First apply with your channel and wait for approval.",
+    "errChannel": "Enter a channel link",
+    "errContact": "Enter a username for contact",
+    "errPostLink": "Paste a valid post link",
+    "errDuplicate": "Application already submitted",
+    "sent": "Sent"
   },
   "deposit": {
     "title": "Deposit GRAM",

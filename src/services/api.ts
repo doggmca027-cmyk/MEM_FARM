@@ -7,6 +7,14 @@ import type {
   AdminUserRow,
   WithdrawalRequest,
 } from '../types/admin';
+import type {
+  AdminAmbassadorApplication,
+  AdminAmbassadorPost,
+  AmbassadorApplication,
+  AmbassadorPost,
+  AmbassadorStatRow,
+  AmbStatus,
+} from '../types/ambassador';
 import { TIER_COST, TIER_IDS } from '../data/tiers';
 import { readTelegramUser } from '../telegram/telegram';
 import type { Transaction, TransactionStatus, TransactionType } from '../types/finance';
@@ -739,6 +747,159 @@ export async function joinPvpLobbyRPC(lobbyId: string): Promise<JoinLobbyResult>
     xpTotal: Number(row?.xp_total) || 0,
     newAvailableGram: num(row?.new_available_gram),
   };
+}
+
+// --- ambassador (user) -------------------------------------------------------
+
+export interface MyAmbassadorData {
+  application: AmbassadorApplication | null;
+  posts: AmbassadorPost[];
+}
+
+export async function fetchMyAmbassador(): Promise<MyAmbassadorData> {
+  const uid = await requireUserId();
+  const db = client();
+  const [appRes, postRes] = await Promise.all([
+    db
+      .from('ambassador_applications')
+      .select('id, channel_link, contact_username, status, created_at')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false })
+      .limit(1),
+    db
+      .from('ambassador_posts')
+      .select('id, post_link, status, admin_comment, created_at')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false }),
+  ]);
+  if (appRes.error) throw appRes.error;
+  if (postRes.error) throw postRes.error;
+
+  const a = (appRes.data ?? [])[0] as Record<string, unknown> | undefined;
+  return {
+    application: a
+      ? {
+          id: String(a.id),
+          channelLink: String(a.channel_link),
+          contactUsername: String(a.contact_username),
+          status: a.status as AmbStatus,
+          createdAt: ms(a.created_at as string),
+        }
+      : null,
+    posts: ((postRes.data ?? []) as Record<string, unknown>[]).map((p) => ({
+      id: String(p.id),
+      postLink: String(p.post_link),
+      status: p.status as AmbStatus,
+      adminComment: (p.admin_comment as string) ?? null,
+      createdAt: ms(p.created_at as string),
+    })),
+  };
+}
+
+export async function submitAmbassadorApplication(
+  channelLink: string,
+  contactUsername: string,
+): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client()
+    .from('ambassador_applications')
+    .insert({ user_id: uid, channel_link: channelLink.trim(), contact_username: contactUsername.trim() });
+  if (error) throw error;
+}
+
+export async function submitAmbassadorPost(postLink: string): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await client()
+    .from('ambassador_posts')
+    .insert({ user_id: uid, post_link: postLink.trim() });
+  if (error) throw error;
+}
+
+// --- ambassador (admin) -----------------------------------------------------
+
+export async function adminListAmbassadorApplications(): Promise<AdminAmbassadorApplication[]> {
+  const { data, error } = await client().rpc('admin_list_ambassador_applications');
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    userId: String(r.user_id),
+    username: (r.username as string) ?? null,
+    firstName: (r.first_name as string) ?? null,
+    telegramId: r.telegram_id != null ? Number(r.telegram_id) : null,
+    balanceGram: num(r.balance_gram),
+    channelLink: String(r.channel_link),
+    contactUsername: String(r.contact_username),
+    status: r.status as AmbStatus,
+    createdAt: ms(r.created_at as string),
+  }));
+}
+
+export async function adminSetAmbassadorApplicationStatus(
+  id: string,
+  status: 'APPROVED' | 'REJECTED',
+): Promise<void> {
+  const { error } = await client().rpc('admin_set_ambassador_application_status', {
+    p_id: id,
+    p_status: status,
+  });
+  if (error) throw error;
+}
+
+export async function adminListAmbassadorPosts(): Promise<AdminAmbassadorPost[]> {
+  const { data, error } = await client().rpc('admin_list_ambassador_posts');
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    userId: String(r.user_id),
+    username: (r.username as string) ?? null,
+    firstName: (r.first_name as string) ?? null,
+    postLink: String(r.post_link),
+    status: r.status as AmbStatus,
+    adminComment: (r.admin_comment as string) ?? null,
+    createdAt: ms(r.created_at as string),
+  }));
+}
+
+export async function adminSetAmbassadorPostStatus(
+  id: string,
+  status: 'APPROVED' | 'REJECTED',
+  comment?: string,
+): Promise<void> {
+  const { error } = await client().rpc('admin_set_ambassador_post_status', {
+    p_id: id,
+    p_status: status,
+    p_comment: comment ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function adminGrantAmbassadorDeposit(
+  userId: string,
+  amount: number,
+): Promise<number> {
+  const { data, error } = await client().rpc('admin_grant_ambassador_deposit', {
+    p_user_id: userId,
+    p_amount: amount,
+  });
+  if (error) throw error;
+  const r = (Array.isArray(data) ? data[0] : data) ?? {};
+  return num(r.new_available_gram);
+}
+
+export async function adminGetAmbassadorStats(): Promise<AmbassadorStatRow[]> {
+  const { data, error } = await client().rpc('admin_get_ambassador_stats');
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    userId: String(r.user_id),
+    username: (r.username as string) ?? null,
+    channelLink: String(r.channel_link),
+    l1Count: Number(r.l1_count) || 0,
+    l2Count: Number(r.l2_count) || 0,
+    l3Count: Number(r.l3_count) || 0,
+    l1DepositTotal: num(r.l1_deposit_total),
+    l2DepositTotal: num(r.l2_deposit_total),
+    l3DepositTotal: num(r.l3_deposit_total),
+  }));
 }
 
 export async function fetchTransactions(limit = 50): Promise<Transaction[]> {

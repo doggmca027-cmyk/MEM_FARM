@@ -53,6 +53,19 @@ export function InviteIcon({ className }: IconProps) {
   );
 }
 
+/** ⭐ Ambassador — star badge. */
+export function AmbassadorIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17.9 6.8 20.2l1-5.8L3.5 9.2l5.9-.9L12 3Z"
+        fill="#A855F7"
+        {...S}
+      />
+    </svg>
+  );
+}
+
 /** 🐷 Wallet & Withdraw — piggy bank. */
 export function WalletIcon({ className }: IconProps) {
   return (

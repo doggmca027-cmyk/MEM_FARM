@@ -4,6 +4,7 @@
     "farm": "Farm",
     "raid": "Raid",
     "invite": "Teman",
+    "ambassador": "Amb.",
     "wallet": "Dompet"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Meme Farm Kamu",
     "raid": "Meme Raid",
     "invite": "Undang Teman",
+    "ambassador": "Ambassador MeM Farm",
     "wallet": "Dompet GRAM"
   },
   "common": {

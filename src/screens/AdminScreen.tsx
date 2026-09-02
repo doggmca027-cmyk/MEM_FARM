@@ -1,21 +1,32 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Ban, Check, Copy, Crown, Search, ShieldCheck, X } from 'lucide-react';
+import { Ban, Check, Copy, Crown, ExternalLink, Search, ShieldCheck, X } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import {
   adminFetchMetrics,
   adminFindUser,
+  adminGetAmbassadorStats,
+  adminGrantAmbassadorDeposit,
+  adminListAmbassadorApplications,
+  adminListAmbassadorPosts,
   adminListWithdrawals,
+  adminSetAmbassadorApplicationStatus,
+  adminSetAmbassadorPostStatus,
   adminUserDetail,
 } from '../services/api';
 import type { AdminMetrics, AdminUserDetail, AdminUserRow, WithdrawalRequest } from '../types/admin';
+import type {
+  AdminAmbassadorApplication,
+  AdminAmbassadorPost,
+  AmbassadorStatRow,
+} from '../types/ambassador';
 import { EMISSION_FACTORS } from '../types/admin';
 import { fmtDateTime, fmtGram } from '../lib/format';
 import { haptic } from '../lib/haptics';
 import { GameButton } from '../components/ui/GameButton';
 import { GramIcon } from '../components/icons/Icons';
 
-type Tab = 'queue' | 'economy' | 'users';
+type Tab = 'queue' | 'economy' | 'users' | 'amb_apps' | 'amb_posts' | 'amb_stats';
 
 export function AdminScreen() {
   const setAdminOpen = useGameStore((s) => s.setAdminOpen);
@@ -43,15 +54,24 @@ export function AdminScreen() {
         </button>
       </header>
 
-      <div className="flex gap-1.5 border-b-2 border-black bg-farm-bg px-3 py-2">
+      <div className="flex gap-1.5 overflow-x-auto border-b-2 border-black bg-farm-bg px-3 py-2">
         <TabBtn active={tab === 'queue'} onClick={() => setTab('queue')}>
-          Заявки
+          Виводи
         </TabBtn>
         <TabBtn active={tab === 'economy'} onClick={() => setTab('economy')}>
           Метрики
         </TabBtn>
         <TabBtn active={tab === 'users'} onClick={() => setTab('users')}>
-          Користувачі
+          Юзери
+        </TabBtn>
+        <TabBtn active={tab === 'amb_apps'} onClick={() => setTab('amb_apps')}>
+          Амб · Заявки
+        </TabBtn>
+        <TabBtn active={tab === 'amb_posts'} onClick={() => setTab('amb_posts')}>
+          Амб · Пости
+        </TabBtn>
+        <TabBtn active={tab === 'amb_stats'} onClick={() => setTab('amb_stats')}>
+          Амб · Аналітика
         </TabBtn>
       </div>
 
@@ -59,6 +79,9 @@ export function AdminScreen() {
         {tab === 'queue' && <QueueTab />}
         {tab === 'economy' && <EconomyTab />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'amb_apps' && <AmbAppsTab />}
+        {tab === 'amb_posts' && <AmbPostsTab />}
+        {tab === 'amb_stats' && <AmbStatsTab />}
       </div>
     </motion.div>
   );
@@ -72,7 +95,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
         onClick();
       }}
       className={[
-        'flex-1 rounded-xl border-2 border-b-4 border-black px-2 py-1.5 text-[11px] font-extrabold uppercase',
+        'flex-none whitespace-nowrap rounded-xl border-2 border-b-4 border-black px-2.5 py-1.5 text-[11px] font-extrabold uppercase',
         active ? 'border-b-black/40 bg-neon-yellow text-black' : 'border-b-black/40 bg-farm-card text-white/50',
       ].join(' ')}
     >
@@ -600,6 +623,300 @@ function UsersTab() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============ TAB 4 — AMBASSADOR APPLICATIONS ============
+
+function AmbAppsTab() {
+  const [rows, setRows] = useState<AdminAmbassadorApplication[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [grant, setGrant] = useState<Record<string, string>>({});
+  const [granted, setGranted] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      setRows(await adminListAmbassadorApplications());
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      setRows([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const review = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    setBusy(id);
+    try {
+      await adminSetAmbassadorApplicationStatus(id, status);
+      haptic.notify('success');
+      await load();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const grantDeposit = async (userId: string) => {
+    const amt = parseFloat((grant[userId] ?? '').replace(',', '.'));
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    setBusy(userId);
+    try {
+      await adminGrantAmbassadorDeposit(userId, amt);
+      haptic.notify('success');
+      setGrant((g) => ({ ...g, [userId]: '' }));
+      setGranted(userId);
+      window.setTimeout(() => setGranted(null), 1600);
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (rows === null) return <Loading />;
+
+  return (
+    <div className="space-y-3">
+      {err && <ErrBox msg={err} />}
+      {rows.length === 0 ? (
+        <Empty text="Немає заявок амбасадорів" />
+      ) : (
+        rows.map((r) => (
+          <div
+            key={r.id}
+            className="relative overflow-hidden rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/80 p-3"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
+            <div className="relative flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold">
+                  {r.username ? `@${r.username}` : r.firstName ?? 'anon'}
+                </div>
+                <div className="text-[10px] text-white/40">
+                  TG {r.telegramId ?? '—'} · {fmtGram(r.balanceGram, 3)} GRAM · {fmtDateTime(r.createdAt)}
+                </div>
+              </div>
+              <span
+                className={[
+                  'flex-none rounded border-2 border-black px-1 text-[8px] font-extrabold uppercase',
+                  r.status === 'APPROVED'
+                    ? 'bg-neon-lime text-black'
+                    : r.status === 'REJECTED'
+                      ? 'bg-neon-pink text-white'
+                      : 'bg-neon-yellow text-black',
+                ].join(' ')}
+              >
+                {r.status}
+              </span>
+            </div>
+
+            <div className="relative mt-2 rounded-xl border-2 border-black bg-farm-deep p-2 text-[11px] text-white/70">
+              <a
+                href={r.channelLink.startsWith('http') ? r.channelLink : undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="dir-ltr block break-all font-mono text-neon-cyan"
+              >
+                {r.channelLink}
+              </a>
+              <div className="mt-1 text-white/40">звʼязок: {r.contactUsername}</div>
+            </div>
+
+            {r.status === 'PENDING' && (
+              <div className="relative mt-2 flex gap-2">
+                <GameButton accent="lime" block disabled={busy === r.id} onClick={() => review(r.id, 'APPROVED')}>
+                  Схвалити
+                </GameButton>
+                <GameButton accent="pink" block disabled={busy === r.id} onClick={() => review(r.id, 'REJECTED')}>
+                  Відхилити
+                </GameButton>
+              </div>
+            )}
+
+            <div className="relative mt-2 flex items-center gap-2">
+              <input
+                inputMode="decimal"
+                value={grant[r.userId] ?? ''}
+                onChange={(e) => setGrant((g) => ({ ...g, [r.userId]: e.target.value }))}
+                placeholder="GRAM"
+                className="w-20 rounded-lg border-2 border-black bg-farm-deep px-2 py-1 text-right text-xs text-white outline-none"
+              />
+              <GameButton
+                accent={granted === r.userId ? 'lime' : 'cyan'}
+                className="ml-auto text-[11px]"
+                disabled={busy === r.userId}
+                onClick={() => grantDeposit(r.userId)}
+              >
+                {granted === r.userId ? 'Нараховано' : 'Видати рекламний депозит'}
+              </GameButton>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ============ TAB 5 — AMBASSADOR POST REPORTS ============
+
+function AmbPostsTab() {
+  const [rows, setRows] = useState<AdminAmbassadorPost[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      setRows(await adminListAmbassadorPosts());
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      setRows([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const review = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    setBusy(id);
+    try {
+      await adminSetAmbassadorPostStatus(id, status);
+      haptic.notify('success');
+      await load();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+      haptic.notify('error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (rows === null) return <Loading />;
+
+  return (
+    <div className="space-y-3">
+      {err && <ErrBox msg={err} />}
+      {rows.length === 0 ? (
+        <Empty text="Немає звітів про пости" />
+      ) : (
+        rows.map((r) => (
+          <div
+            key={r.id}
+            className="relative overflow-hidden rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/80 p-3"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
+            <div className="relative flex items-start justify-between gap-2">
+              <div className="min-w-0 text-sm font-bold">
+                {r.username ? `@${r.username}` : r.firstName ?? 'anon'}
+              </div>
+              <span
+                className={[
+                  'flex-none rounded border-2 border-black px-1 text-[8px] font-extrabold uppercase',
+                  r.status === 'APPROVED'
+                    ? 'bg-neon-lime text-black'
+                    : r.status === 'REJECTED'
+                      ? 'bg-neon-pink text-white'
+                      : 'bg-neon-yellow text-black',
+                ].join(' ')}
+              >
+                {r.status}
+              </span>
+            </div>
+
+            <a
+              href={r.postLink}
+              target="_blank"
+              rel="noreferrer"
+              className="relative mt-2 flex items-center gap-1.5 rounded-lg border-2 border-black bg-farm-deep px-2 py-1.5 text-[11px] text-neon-cyan"
+            >
+              <span className="dir-ltr flex-1 truncate font-mono">{r.postLink}</span>
+              <ExternalLink className="h-3.5 w-3.5 flex-none" strokeWidth={3} />
+            </a>
+            <div className="relative mt-1 text-[10px] text-white/40">{fmtDateTime(r.createdAt)}</div>
+
+            {r.status === 'PENDING' && (
+              <div className="relative mt-2 flex gap-2">
+                <GameButton accent="lime" block disabled={busy === r.id} onClick={() => review(r.id, 'APPROVED')}>
+                  Зарахувати пост
+                </GameButton>
+                <GameButton accent="pink" block disabled={busy === r.id} onClick={() => review(r.id, 'REJECTED')}>
+                  Відхилити
+                </GameButton>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ============ TAB 6 — AMBASSADOR ANALYTICS ============
+
+function AmbStatsTab() {
+  const [rows, setRows] = useState<AmbassadorStatRow[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setRows(await adminGetAmbassadorStats());
+      } catch (e) {
+        setErr(String((e as Error).message ?? e));
+        setRows([]);
+      }
+    })();
+  }, []);
+
+  if (rows === null) return <Loading />;
+
+  return (
+    <div className="space-y-3">
+      {err && <ErrBox msg={err} />}
+      {rows.length === 0 ? (
+        <Empty text="Немає схвалених амбасадорів" />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[11px]">
+            <thead>
+              <tr className="text-left text-[9px] font-extrabold uppercase text-white/40">
+                <th className="py-1 pr-2">Амбасадор</th>
+                <th className="px-2">Канал</th>
+                <th className="px-2 text-center">L1/L2/L3</th>
+                <th className="pl-2 text-right">Депозити L1/L2/L3</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.userId} className="border-t-2 border-black/30 align-top">
+                  <td className="py-1.5 pr-2 font-bold">
+                    {r.username ? `@${r.username}` : r.userId.slice(0, 6)}
+                  </td>
+                  <td className="dir-ltr px-2 font-mono text-neon-cyan">
+                    <span className="block max-w-[120px] truncate">{r.channelLink}</span>
+                  </td>
+                  <td className="px-2 text-center font-mono text-white/80">
+                    {r.l1Count}/{r.l2Count}/{r.l3Count}
+                  </td>
+                  <td className="dir-ltr pl-2 text-right font-mono text-neon-lime">
+                    {fmtGram(r.l1DepositTotal, 2)}/{fmtGram(r.l2DepositTotal, 2)}/{fmtGram(r.l3DepositTotal, 2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

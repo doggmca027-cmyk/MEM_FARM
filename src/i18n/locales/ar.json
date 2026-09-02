@@ -4,6 +4,7 @@
     "farm": "المزرعة",
     "raid": "الغارة",
     "invite": "الأصدقاء",
+    "ambassador": "سفير",
     "wallet": "المحفظة"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "مزرعة الميمات خاصتك",
     "raid": "غارة الميمات",
     "invite": "ادعُ الأصدقاء",
+    "ambassador": "سفير MeM Farm",
     "wallet": "محفظة GRAM"
   },
   "common": {

@@ -50,7 +50,7 @@ import {
   type ProfileData,
 } from '../services/api';
 
-export type NavTab = 'quests' | 'farm' | 'raid' | 'invite' | 'wallet';
+export type NavTab = 'quests' | 'farm' | 'raid' | 'invite' | 'wallet' | 'ambassador';
 export type DataMode = 'mock' | 'live';
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 

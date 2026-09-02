@@ -4,6 +4,7 @@
     "farm": "Granja",
     "raid": "Asalto",
     "invite": "Amigos",
+    "ambassador": "Emb.",
     "wallet": "Cartera"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Tu Meme Farm",
     "raid": "Meme Raid",
     "invite": "Invita amigos",
+    "ambassador": "Embajador de MeM Farm",
     "wallet": "Cartera GRAM"
   },
   "common": {

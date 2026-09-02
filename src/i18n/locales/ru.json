@@ -4,6 +4,7 @@
     "farm": "Ферма",
     "raid": "Рейд",
     "invite": "Друзья",
+    "ambassador": "Амб.",
     "wallet": "Кошелёк"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Твоя мем-ферма",
     "raid": "Мем-рейд",
     "invite": "Пригласи друзей",
+    "ambassador": "Амбассадор MeM Farm",
     "wallet": "Кошелёк GRAM"
   },
   "common": {
@@ -177,7 +179,34 @@
     "QUEST_REWARD": "Задание",
     "REFUND": "Возврат",
     "WAGER_STAKE": "Ставка PvP",
-    "WAGER_PAYOUT": "Выигрыш PvP"
+    "WAGER_PAYOUT": "Выигрыш PvP",
+    "AMBASSADOR_REWARD": "Амбассадор"
+  },
+  "ambassador": {
+    "title": "Амбассадорская программа",
+    "onlineOnly": "Войди через Telegram, чтобы стать амбассадором.",
+    "applyTitle": "Подать заявку на канал",
+    "applyIntro": "Если у вас больше 1000 подписчиков, вы можете стать амбассадором MeM Farm. Добавьте бота в администраторы канала.",
+    "applyNote": "После одобрения заявки вам будет начислен рекламный депозит на баланс.",
+    "channelPlaceholder": "Ссылка на канал или @channel",
+    "contactPlaceholder": "Ваш username для связи",
+    "submitApplication": "Отправить заявку",
+    "statusPending": "На рассмотрении",
+    "statusApproved": "Одобрено",
+    "statusRejected": "Отклонено",
+    "reapply": "Заявка отклонена. Вы можете подать новую.",
+    "approvedNote": "Вы амбассадор. Рекламный депозит начисляется вручную после проверки канала.",
+    "postsTitle": "Отчёты о публикациях",
+    "postsIntro": "Вставьте только ссылку. Мы проверим выход поста.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Отправить на проверку",
+    "postsEmpty": "Пока нет отправленных отчётов.",
+    "needApproved": "Сначала подайте заявку на канал и дождитесь одобрения.",
+    "errChannel": "Укажите ссылку на канал",
+    "errContact": "Укажите username для связи",
+    "errPostLink": "Вставьте корректную ссылку на пост",
+    "errDuplicate": "Заявка уже подана",
+    "sent": "Отправлено"
   },
   "deposit": {
     "title": "Депозит GRAM",

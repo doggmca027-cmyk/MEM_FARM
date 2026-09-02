@@ -4,6 +4,7 @@
     "farm": "Ферма",
     "raid": "Рейд",
     "invite": "Достар",
+    "ambassador": "Амб.",
     "wallet": "Әмиян"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Сенің мем-фермаң",
     "raid": "Мем-рейд",
     "invite": "Достарды шақыр",
+    "ambassador": "MeM Farm елшісі",
     "wallet": "GRAM әмияны"
   },
   "common": {

@@ -4,6 +4,7 @@
     "farm": "Ферма",
     "raid": "Рейд",
     "invite": "Друзі",
+    "ambassador": "Амб.",
     "wallet": "Гаманець"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "Твоя мем-ферма",
     "raid": "Мем-рейд",
     "invite": "Запроси друзів",
+    "ambassador": "Амбасадор MeM Farm",
     "wallet": "Гаманець GRAM"
   },
   "common": {
@@ -177,7 +179,34 @@
     "QUEST_REWARD": "Завдання",
     "REFUND": "Повернення",
     "WAGER_STAKE": "Ставка PvP",
-    "WAGER_PAYOUT": "Виграш PvP"
+    "WAGER_PAYOUT": "Виграш PvP",
+    "AMBASSADOR_REWARD": "Амбасадор"
+  },
+  "ambassador": {
+    "title": "Амбасадорська програма",
+    "onlineOnly": "Увійди через Telegram, щоб стати амбасадором.",
+    "applyTitle": "Подати заявку на канал",
+    "applyIntro": "Якщо у вас більше 1000 підписників, ви можете стати амбасадором MeM Farm. Додайте бота в адміністратори каналу.",
+    "applyNote": "Після схвалення заявки вам буде нараховано рекламний депозит на баланс.",
+    "channelPlaceholder": "Посилання на канал або @channel",
+    "contactPlaceholder": "Ваш username для звʼязку",
+    "submitApplication": "Відправити заявку",
+    "statusPending": "На розгляді",
+    "statusApproved": "Схвалено",
+    "statusRejected": "Відхилено",
+    "reapply": "Заявку відхилено. Ви можете подати нову.",
+    "approvedNote": "Ви амбасадор. Рекламний депозит нараховується вручну після перевірки каналу.",
+    "postsTitle": "Звіти про публікації",
+    "postsIntro": "Вставте тільки посилання. Ми перевіримо вихід поста.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Надіслати на перевірку",
+    "postsEmpty": "Ще немає відправлених звітів.",
+    "needApproved": "Спершу подайте заявку на канал і дочекайтесь схвалення.",
+    "errChannel": "Вкажіть посилання на канал",
+    "errContact": "Вкажіть username для звʼязку",
+    "errPostLink": "Вставте коректне посилання на пост",
+    "errDuplicate": "Заявку вже подано",
+    "sent": "Надіслано"
   },
   "deposit": {
     "title": "Депозит GRAM",

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { selectQuestBadge, useGameStore, type NavTab } from '../../store/useGameStore';
 import { haptic } from '../../lib/haptics';
 import {
+  AmbassadorIcon,
   FarmIcon,
   InviteIcon,
   QuestsIcon,
@@ -25,6 +26,7 @@ const TABS: TabDef[] = [
   { id: 'farm', Icon: FarmIcon },
   { id: 'raid', Icon: RaidIcon },
   { id: 'invite', Icon: InviteIcon },
+  { id: 'ambassador', Icon: AmbassadorIcon },
   { id: 'wallet', Icon: WalletIcon },
 ];
 

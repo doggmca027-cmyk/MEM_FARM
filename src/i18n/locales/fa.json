@@ -4,6 +4,7 @@
     "farm": "مزرعه",
     "raid": "یورش",
     "invite": "دوستان",
+    "ambassador": "سفیر",
     "wallet": "کیف‌پول"
   },
   "tabTitle": {
@@ -11,6 +12,7 @@
     "farm": "مزرعهٔ میم شما",
     "raid": "یورش میم",
     "invite": "دعوت از دوستان",
+    "ambassador": "سفیر MeM Farm",
     "wallet": "کیف‌پول GRAM"
   },
   "common": {

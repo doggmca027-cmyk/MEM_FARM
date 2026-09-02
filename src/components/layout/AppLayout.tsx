@@ -9,6 +9,7 @@ import { QuestsScreen } from '../../screens/QuestsScreen';
 import { RaidScreen } from '../../screens/RaidScreen';
 import { InviteScreen } from '../../screens/InviteScreen';
 import { WalletScreen } from '../../screens/WalletScreen';
+import { AmbassadorScreen } from '../../screens/AmbassadorScreen';
 import { AdminScreen } from '../../screens/AdminScreen';
 import { SettingsModal } from '../settings/SettingsModal';
 
@@ -17,6 +18,7 @@ const SCREENS: Record<NavTab, () => ReactNode> = {
   farm: () => <FarmHubScreen />,
   raid: () => <RaidScreen />,
   invite: () => <InviteScreen />,
+  ambassador: () => <AmbassadorScreen />,
   wallet: () => <WalletScreen />,
 };
 
