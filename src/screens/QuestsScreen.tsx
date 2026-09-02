@@ -253,10 +253,11 @@ function SocialTasks() {
                   <Megaphone className="h-4 w-4 text-neon-violet" strokeWidth={3} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className={`dir-ltr truncate text-sm font-bold ${done ? 'text-white/40' : ''}`}>
-                    {task.channel}
+                  <div className={`truncate text-sm font-bold ${done ? 'text-white/40' : ''}`}>
+                    {task.title}
                   </div>
-                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-neon-lime dir-ltr">
+                  <div className="dir-ltr truncate text-[10px] text-white/35">{task.handle}</div>
+                  <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-neon-lime dir-ltr">
                     <GramIcon className="h-3 w-3" />+{fmtGram(task.reward, 2)}
                   </div>
                 </div>

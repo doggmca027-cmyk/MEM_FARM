@@ -4,7 +4,10 @@
 export interface SocialTask {
   /** Must match the id in claim_social_task(). */
   id: string;
-  channel: string;
+  /** Channel display title (shown as the task name). */
+  title: string;
+  /** @handle, shown small under the title. */
+  handle: string;
   url: string;
   reward: number;
 }
@@ -12,13 +15,15 @@ export interface SocialTask {
 export const SOCIAL_TASKS: SocialTask[] = [
   {
     id: 'sub_meme_farm_trans',
-    channel: '@MEME_FARM_trans',
+    title: 'MEME FARM TRANS',
+    handle: '@MEME_FARM_trans',
     url: 'https://t.me/MEME_FARM_trans',
     reward: 0.05,
   },
   {
     id: 'sub_meme_farm_anonce',
-    channel: '@MEME_FARM_ANONCE',
+    title: 'MEME FARM',
+    handle: '@MEME_FARM_ANONCE',
     url: 'https://t.me/MEME_FARM_ANONCE',
     reward: 0.05,
   },
