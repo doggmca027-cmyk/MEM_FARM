@@ -179,7 +179,8 @@
     "QUEST_REWARD": "مأموریت",
     "REFUND": "بازگشت وجه",
     "WAGER_STAKE": "شرط PvP",
-    "WAGER_PAYOUT": "پرداخت PvP"
+    "WAGER_PAYOUT": "پرداخت PvP",
+    "AMBASSADOR_REWARD": "سفیر"
   },
   "deposit": {
     "title": "واریز GRAM",
@@ -252,5 +253,31 @@
     "refIncomeHint": "وقتی دوستی برایتان GRAM آورد",
     "pushLive": "اعلان از طریق بات تلگرام. تغییرات فوراً ذخیره می‌شوند.",
     "pushDemo": "حالت نمایشی: بدون ورود از تلگرام تنظیمات ذخیره نمی‌شود."
+  },
+  "ambassador": {
+    "title": "برنامهٔ سفیران",
+    "onlineOnly": "برای سفیر شدن از طریق تلگرام وارد شو.",
+    "applyTitle": "با کانالت درخواست بده",
+    "applyIntro": "اگر بیش از ۱۰۰۰ مشترک داری، می‌توانی سفیر MeM Farm شوی. ربات را به‌عنوان ادمین کانال اضافه کن.",
+    "applyNote": "پس از تأیید درخواستت، یک واریز تبلیغاتی به موجودی‌ات اضافه می‌شود.",
+    "channelPlaceholder": "لینک کانال یا @channel",
+    "contactPlaceholder": "نام کاربری‌ات برای تماس",
+    "submitApplication": "ارسال درخواست",
+    "statusPending": "در حال بررسی",
+    "statusApproved": "تأیید شد",
+    "statusRejected": "رد شد",
+    "reapply": "درخواست رد شد. می‌توانی درخواست تازه بفرستی.",
+    "approvedNote": "تو سفیر هستی. واریز تبلیغاتی پس از بررسی کانال به‌صورت دستی اضافه می‌شود.",
+    "postsTitle": "گزارش‌های انتشار",
+    "postsIntro": "فقط لینک را بچسبان. انتشار پست را بررسی می‌کنیم.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "ارسال برای بررسی",
+    "postsEmpty": "هنوز گزارشی ارسال نشده.",
+    "needApproved": "اول با کانالت درخواست بده و منتظر تأیید بمان.",
+    "errChannel": "یک لینک کانال وارد کن",
+    "errContact": "یک نام کاربری برای تماس وارد کن",
+    "errPostLink": "یک لینک پست معتبر بچسبان",
+    "errDuplicate": "درخواست قبلاً ارسال شده",
+    "sent": "ارسال شد"
   }
 }

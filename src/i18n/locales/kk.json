@@ -179,7 +179,8 @@
     "QUEST_REWARD": "Тапсырма",
     "REFUND": "Қайтару",
     "WAGER_STAKE": "PvP мөлшерлемесі",
-    "WAGER_PAYOUT": "PvP ұтысы"
+    "WAGER_PAYOUT": "PvP ұтысы",
+    "AMBASSADOR_REWARD": "Елші"
   },
   "deposit": {
     "title": "GRAM депозиті",
@@ -252,5 +253,31 @@
     "refIncomeHint": "Дос саған GRAM әкелгенде",
     "pushLive": "Telegram бот арқылы push. Өзгерістер бірден сақталады.",
     "pushDemo": "Демо-режим: Telegram арқылы кірмей баптаулар сақталмайды."
+  },
+  "ambassador": {
+    "title": "Елшілік бағдарламасы",
+    "onlineOnly": "Елші болу үшін Telegram арқылы кір.",
+    "applyTitle": "Арнаңмен өтінім бер",
+    "applyIntro": "1000-нан астам жазылушың болса, MeM Farm елшісі бола аласың. Ботты арнаға әкімші етіп қос.",
+    "applyNote": "Өтінім мақұлданғаннан кейін балансыңа жарнамалық депозит есептеледі.",
+    "channelPlaceholder": "Арна сілтемесі немесе @channel",
+    "contactPlaceholder": "Байланысқа арналған username",
+    "submitApplication": "Өтінім жіберу",
+    "statusPending": "Қаралуда",
+    "statusApproved": "Мақұлданды",
+    "statusRejected": "Қабылданбады",
+    "reapply": "Өтінім қабылданбады. Жаңасын жібере аласың.",
+    "approvedNote": "Сен елшісің. Жарнамалық депозит арна тексерілгеннен кейін қолмен есептеледі.",
+    "postsTitle": "Жарияланым есептері",
+    "postsIntro": "Тек сілтемені қой. Посттың шыққанын тексереміз.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Тексеруге жіберу",
+    "postsEmpty": "Әзірге жіберілген есеп жоқ.",
+    "needApproved": "Алдымен арнаңмен өтінім бер де мақұлдауды күт.",
+    "errChannel": "Арна сілтемесін енгіз",
+    "errContact": "Байланысқа username енгіз",
+    "errPostLink": "Жарамды пост сілтемесін қой",
+    "errDuplicate": "Өтінім берілген",
+    "sent": "Жіберілді"
   }
 }

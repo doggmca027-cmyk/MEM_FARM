@@ -179,7 +179,8 @@
     "QUEST_REWARD": "مهمة",
     "REFUND": "استرداد",
     "WAGER_STAKE": "رهان PvP",
-    "WAGER_PAYOUT": "أرباح PvP"
+    "WAGER_PAYOUT": "أرباح PvP",
+    "AMBASSADOR_REWARD": "سفير"
   },
   "deposit": {
     "title": "إيداع GRAM",
@@ -252,5 +253,31 @@
     "refIncomeHint": "عندما يجلب لك صديق GRAM",
     "pushLive": "إشعارات عبر بوت تيليجرام. تُحفظ التغييرات فوراً.",
     "pushDemo": "وضع تجريبي: لا تُحفظ الإعدادات دون تسجيل الدخول عبر تيليجرام."
+  },
+  "ambassador": {
+    "title": "برنامج السفراء",
+    "onlineOnly": "سجّل الدخول عبر تيليجرام لتصبح سفيراً.",
+    "applyTitle": "قدّم بقناتك",
+    "applyIntro": "إذا كان لديك أكثر من 1000 مشترك، يمكنك أن تصبح سفيراً لـ MeM Farm. أضف البوت مشرفاً في القناة.",
+    "applyNote": "بعد الموافقة على طلبك، يُضاف إيداع ترويجي إلى رصيدك.",
+    "channelPlaceholder": "رابط القناة أو @channel",
+    "contactPlaceholder": "اسم المستخدم للتواصل",
+    "submitApplication": "إرسال الطلب",
+    "statusPending": "قيد المراجعة",
+    "statusApproved": "مقبول",
+    "statusRejected": "مرفوض",
+    "reapply": "رُفض الطلب. يمكنك إرسال طلب جديد.",
+    "approvedNote": "أنت سفير. يُضاف الإيداع الترويجي يدوياً بعد مراجعة القناة.",
+    "postsTitle": "تقارير المنشورات",
+    "postsIntro": "الصق الرابط فقط. سنتحقق من نشر المنشور.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "إرسال للمراجعة",
+    "postsEmpty": "لا توجد تقارير مُرسلة بعد.",
+    "needApproved": "قدّم أولاً بقناتك وانتظر الموافقة.",
+    "errChannel": "أدخل رابط قناة",
+    "errContact": "أدخل اسم مستخدم للتواصل",
+    "errPostLink": "الصق رابط منشور صالحاً",
+    "errDuplicate": "تم إرسال الطلب بالفعل",
+    "sent": "أُرسل"
   }
 }

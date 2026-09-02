@@ -179,7 +179,8 @@
     "QUEST_REWARD": "Görev",
     "REFUND": "İade",
     "WAGER_STAKE": "PvP bahsi",
-    "WAGER_PAYOUT": "PvP ödemesi"
+    "WAGER_PAYOUT": "PvP ödemesi",
+    "AMBASSADOR_REWARD": "Elçi"
   },
   "deposit": {
     "title": "GRAM Yatır",
@@ -252,5 +253,31 @@
     "refIncomeHint": "Bir arkadaş sana GRAM getirdiğinde",
     "pushLive": "Telegram botu üzerinden push. Değişiklikler anında kaydedilir.",
     "pushDemo": "Demo modu: Telegram girişi olmadan ayarlar kaydedilmez."
+  },
+  "ambassador": {
+    "title": "Elçilik programı",
+    "onlineOnly": "Elçi olmak için Telegram üzerinden giriş yap.",
+    "applyTitle": "Kanalınla başvur",
+    "applyIntro": "1000'den fazla abonen varsa MeM Farm elçisi olabilirsin. Botu kanala yönetici olarak ekle.",
+    "applyNote": "Başvurun onaylandıktan sonra bakiyene reklam depozitosu yatırılır.",
+    "channelPlaceholder": "Kanal bağlantısı veya @channel",
+    "contactPlaceholder": "İletişim için kullanıcı adın",
+    "submitApplication": "Başvuru gönder",
+    "statusPending": "İnceleniyor",
+    "statusApproved": "Onaylandı",
+    "statusRejected": "Reddedildi",
+    "reapply": "Başvuru reddedildi. Yenisini gönderebilirsin.",
+    "approvedNote": "Elçisin. Reklam depozitosu, kanal incelendikten sonra elle yatırılır.",
+    "postsTitle": "Yayın raporları",
+    "postsIntro": "Yalnızca bağlantıyı yapıştır. Gönderinin yayınlandığını doğrularız.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "İncelemeye gönder",
+    "postsEmpty": "Henüz rapor gönderilmedi.",
+    "needApproved": "Önce kanalınla başvur ve onay bekle.",
+    "errChannel": "Bir kanal bağlantısı gir",
+    "errContact": "İletişim için bir kullanıcı adı gir",
+    "errPostLink": "Geçerli bir gönderi bağlantısı yapıştır",
+    "errDuplicate": "Başvuru zaten gönderildi",
+    "sent": "Gönderildi"
   }
 }

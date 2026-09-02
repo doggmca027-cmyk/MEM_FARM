@@ -179,7 +179,8 @@
     "QUEST_REWARD": "Misi",
     "REFUND": "Pengembalian",
     "WAGER_STAKE": "Taruhan PvP",
-    "WAGER_PAYOUT": "Kemenangan PvP"
+    "WAGER_PAYOUT": "Kemenangan PvP",
+    "AMBASSADOR_REWARD": "Duta"
   },
   "deposit": {
     "title": "Setor GRAM",
@@ -252,5 +253,31 @@
     "refIncomeHint": "Saat teman membawakanmu GRAM",
     "pushLive": "Push via bot Telegram. Perubahan tersimpan instan.",
     "pushDemo": "Mode demo: pengaturan tidak tersimpan tanpa login Telegram."
+  },
+  "ambassador": {
+    "title": "Program duta",
+    "onlineOnly": "Masuk lewat Telegram untuk menjadi duta.",
+    "applyTitle": "Ajukan dengan channel-mu",
+    "applyIntro": "Jika kamu punya lebih dari 1000 subscriber, kamu bisa menjadi duta MeM Farm. Tambahkan bot sebagai admin channel.",
+    "applyNote": "Setelah pengajuanmu disetujui, deposit promosi akan dikreditkan ke saldomu.",
+    "channelPlaceholder": "Tautan channel atau @channel",
+    "contactPlaceholder": "Username-mu untuk kontak",
+    "submitApplication": "Kirim pengajuan",
+    "statusPending": "Ditinjau",
+    "statusApproved": "Disetujui",
+    "statusRejected": "Ditolak",
+    "reapply": "Pengajuan ditolak. Kamu bisa mengirim yang baru.",
+    "approvedNote": "Kamu duta. Deposit promosi dikreditkan manual setelah channel ditinjau.",
+    "postsTitle": "Laporan publikasi",
+    "postsIntro": "Tempel tautannya saja. Kami akan verifikasi postingannya tayang.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Kirim untuk ditinjau",
+    "postsEmpty": "Belum ada laporan yang dikirim.",
+    "needApproved": "Ajukan dulu dengan channel-mu dan tunggu persetujuan.",
+    "errChannel": "Masukkan tautan channel",
+    "errContact": "Masukkan username untuk kontak",
+    "errPostLink": "Tempel tautan postingan yang valid",
+    "errDuplicate": "Pengajuan sudah dikirim",
+    "sent": "Terkirim"
   }
 }

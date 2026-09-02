@@ -179,7 +179,8 @@
     "QUEST_REWARD": "Misión",
     "REFUND": "Reembolso",
     "WAGER_STAKE": "Apuesta PvP",
-    "WAGER_PAYOUT": "Pago PvP"
+    "WAGER_PAYOUT": "Pago PvP",
+    "AMBASSADOR_REWARD": "Embajador"
   },
   "deposit": {
     "title": "Depositar GRAM",
@@ -252,5 +253,31 @@
     "refIncomeHint": "Cuando un amigo te trae GRAM",
     "pushLive": "Push mediante el bot de Telegram. Los cambios se guardan al instante.",
     "pushDemo": "Modo demo: los ajustes no se guardan sin iniciar sesión en Telegram."
+  },
+  "ambassador": {
+    "title": "Programa de embajadores",
+    "onlineOnly": "Inicia sesión con Telegram para ser embajador.",
+    "applyTitle": "Postula con tu canal",
+    "applyIntro": "Si tienes más de 1000 suscriptores, puedes ser embajador de MeM Farm. Añade el bot como administrador del canal.",
+    "applyNote": "Cuando se apruebe tu solicitud, se acreditará un depósito promocional a tu saldo.",
+    "channelPlaceholder": "Enlace del canal o @channel",
+    "contactPlaceholder": "Tu usuario de contacto",
+    "submitApplication": "Enviar solicitud",
+    "statusPending": "En revisión",
+    "statusApproved": "Aprobada",
+    "statusRejected": "Rechazada",
+    "reapply": "Solicitud rechazada. Puedes enviar una nueva.",
+    "approvedNote": "Eres embajador. El depósito promocional se acredita manualmente tras revisar el canal.",
+    "postsTitle": "Informes de publicaciones",
+    "postsIntro": "Pega solo el enlace. Verificaremos que la publicación salió.",
+    "postPlaceholder": "https://t.me/channel/123",
+    "submitPost": "Enviar a revisión",
+    "postsEmpty": "Aún no hay informes enviados.",
+    "needApproved": "Primero postula con tu canal y espera la aprobación.",
+    "errChannel": "Ingresa un enlace de canal",
+    "errContact": "Ingresa un usuario de contacto",
+    "errPostLink": "Pega un enlace de publicación válido",
+    "errDuplicate": "La solicitud ya fue enviada",
+    "sent": "Enviado"
   }
 }
