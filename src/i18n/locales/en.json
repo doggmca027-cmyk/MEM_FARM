@@ -302,5 +302,12 @@
     "closedHint": "This ticket is closed — a new message reopens it",
     "you": "You",
     "team": "Support"
+  },
+  "social": {
+    "title": "Channel subscriptions",
+    "hint": "Subscribe to the channel and claim the reward. Once per channel.",
+    "claim": "Claim",
+    "claimed": "Claimed",
+    "onlineOnly": "Sign in via Telegram to claim the reward."
   }
 }

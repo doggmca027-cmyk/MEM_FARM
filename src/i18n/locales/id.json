@@ -302,5 +302,12 @@
     "closedHint": "Tiket ditutup — pesan baru membukanya lagi",
     "you": "Kamu",
     "team": "Dukungan"
+  },
+  "social": {
+    "title": "Langganan channel",
+    "hint": "Ikuti channel dan ambil hadiahnya. Sekali per channel.",
+    "claim": "Ambil",
+    "claimed": "Diambil",
+    "onlineOnly": "Masuk lewat Telegram untuk mengambil hadiah."
   }
 }

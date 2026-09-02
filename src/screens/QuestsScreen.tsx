@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { CalendarDays, CheckCircle2, Circle, Flame, Gift, Sparkles } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Check, Circle, ExternalLink, Flame, Gift, Megaphone, Sparkles } from 'lucide-react';
 import type { Reward } from '../types/quests';
 import {
   selectCanCheckIn,
@@ -9,6 +9,9 @@ import {
   useGameStore,
 } from '../store/useGameStore';
 import { STREAK_DAYS } from '../data/quests';
+import { SOCIAL_TASKS } from '../data/social';
+import { fetchSocialClaims } from '../services/api';
+import { openTelegramLink } from '../telegram/telegram';
 import { fmtGram, fmtHMS } from '../lib/format';
 import { msUntilUtcMidnight } from '../lib/time';
 import { fireClaimConfetti, firePop } from '../lib/confetti';
@@ -201,6 +204,96 @@ export function QuestsScreen() {
           })}
         </ul>
       </section>
+
+      <SocialTasks />
     </div>
+  );
+}
+
+// ===== ONE-TIME CHANNEL-SUBSCRIPTION TASKS =====
+
+function SocialTasks() {
+  const t = useT();
+  const mode = useGameStore((s) => s.mode);
+  const claimSocialTask = useGameStore((s) => s.claimSocialTask);
+  const [claimed, setClaimed] = useState<string[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode !== 'live') return;
+    fetchSocialClaims().then(setClaimed).catch(() => {});
+  }, [mode]);
+
+  const doClaim = async (id: string) => {
+    setBusy(id);
+    const ok = await claimSocialTask(id);
+    if (ok) {
+      setClaimed((c) => [...c, id]);
+      haptic.notify('success');
+      firePop();
+    }
+    setBusy(null);
+  };
+
+  return (
+    <section>
+      <h2 className="mb-2 font-display text-lg text-stroke">{t('social.title')}</h2>
+      <div className="mb-2 text-[11px] text-white/45">{t('social.hint')}</div>
+      <ul className="space-y-2">
+        {SOCIAL_TASKS.map((task) => {
+          const done = claimed.includes(task.id);
+          return (
+            <li
+              key={task.id}
+              className="relative overflow-hidden rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/70 p-3 backdrop-blur-md"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
+              <div className="relative flex items-center gap-3">
+                <span className="grid h-9 w-9 flex-none place-items-center rounded-xl border-2 border-black bg-farm-deep">
+                  <Megaphone className="h-4 w-4 text-neon-violet" strokeWidth={3} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className={`dir-ltr truncate text-sm font-bold ${done ? 'text-white/40' : ''}`}>
+                    {task.channel}
+                  </div>
+                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-neon-lime dir-ltr">
+                    <GramIcon className="h-3 w-3" />+{fmtGram(task.reward, 2)}
+                  </div>
+                </div>
+                <div className="flex flex-none items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      haptic.select();
+                      openTelegramLink(task.url);
+                    }}
+                    className="grid h-8 w-8 place-items-center rounded-lg border-2 border-b-4 border-black border-b-black/40 bg-farm-deep text-white/70 active:translate-y-0.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" strokeWidth={3} />
+                  </button>
+                  <GameButton
+                    accent={done ? 'lime' : 'yellow'}
+                    disabled={done || busy === task.id || mode !== 'live'}
+                    className="text-[11px]"
+                    onClick={() => doClaim(task.id)}
+                  >
+                    {done ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                        {t('social.claimed')}
+                      </span>
+                    ) : (
+                      t('social.claim')
+                    )}
+                  </GameButton>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {mode !== 'live' && (
+        <div className="mt-1.5 text-[10px] text-neon-pink">{t('social.onlineOnly')}</div>
+      )}
+    </section>
   );
 }

@@ -84,6 +84,20 @@ export function openTelegramShare(url: string, text: string): void {
   window.open(share, '_blank', 'noopener');
 }
 
+/** Open a t.me link (channel / chat) natively inside Telegram, else a new tab. */
+export function openTelegramLink(url: string): void {
+  try {
+    const wa = WebApp as unknown as { openTelegramLink?: (u: string) => void };
+    if (typeof wa.openTelegramLink === 'function') {
+      wa.openTelegramLink(url);
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  window.open(url, '_blank', 'noopener');
+}
+
 function applyInsets(inset: Partial<Inset> | undefined) {
   if (!inset) return;
   const root = document.documentElement.style;

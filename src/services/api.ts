@@ -923,6 +923,27 @@ export async function adminGetAmbassadorStats(): Promise<AmbassadorStatRow[]> {
   }));
 }
 
+// --- social subscription tasks -----------------------------------------
+
+/** Task ids the current user has already claimed (one-time). */
+export async function fetchSocialClaims(): Promise<string[]> {
+  const uid = await requireUserId();
+  const { data, error } = await client()
+    .from('social_task_claims')
+    .select('task_id')
+    .eq('user_id', uid);
+  if (error) throw error;
+  return ((data ?? []) as { task_id: string }[]).map((r) => r.task_id);
+}
+
+/** Claim a one-time social task → returns the new available balance. */
+export async function claimSocialTask(taskId: string): Promise<number> {
+  const { data, error } = await client().rpc('claim_social_task', { p_task_id: taskId });
+  if (error) throw error;
+  const r = (Array.isArray(data) ? data[0] : data) ?? {};
+  return num(r.new_available_gram);
+}
+
 // --- support chat (user) --------------------------------------------------
 
 export interface MySupportData {

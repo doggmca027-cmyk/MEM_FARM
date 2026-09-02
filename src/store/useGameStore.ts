@@ -28,6 +28,7 @@ import {
   cancelPvpLobbyRPC,
   claimIncomeRPC,
   claimReferralRewardsRPC,
+  claimSocialTask as claimSocialTaskRPC,
   createPvpLobbyRPC,
   DEFAULT_NOTIF_PREFS,
   fetchFarmData,
@@ -367,6 +368,8 @@ interface GameStore {
   /** Claim today's streak reward and advance / reset the streak. Live: `claim_daily_streak`. */
   claimDailyCheckIn: () => Promise<void>;
   claimQuestReward: (questId: QuestId) => void;
+  /** One-time channel-subscription task. Live only; credits 0.05 GRAM server-side. */
+  claimSocialTask: (taskId: string) => Promise<boolean>;
 
   /** Pick the GRAM stake for the next duel. */
   setPvpStake: (stake: StakeTier) => void;
@@ -947,6 +950,18 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         quests: s.quests.map((x) => (x.id === questId ? { ...x, claimed: true } : x)),
       };
     }),
+
+  claimSocialTask: async (taskId) => {
+    if (get().mode !== 'live') return false;
+    try {
+      const bal = await claimSocialTaskRPC(taskId);
+      set({ balanceGram: bal });
+      return true;
+    } catch (err) {
+      set({ toast: { msg: rpcErr(err, get().lang), kind: 'error' } });
+      return false;
+    }
+  },
 
   setPvpStake: (stake) => set({ pvpStake: stake }),
 

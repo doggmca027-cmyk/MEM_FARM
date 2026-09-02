@@ -302,5 +302,12 @@
     "closedHint": "Talep kapalı — yeni mesaj yeniden açar",
     "you": "Sen",
     "team": "Destek"
+  },
+  "social": {
+    "title": "Kanal abonelikleri",
+    "hint": "Kanala abone ol ve ödülü al. Kanal başına bir kez.",
+    "claim": "Al",
+    "claimed": "Alındı",
+    "onlineOnly": "Ödülü almak için Telegram ile giriş yap."
   }
 }

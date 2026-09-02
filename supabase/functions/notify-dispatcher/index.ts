@@ -31,6 +31,8 @@ const NOTIFY_SECRET = Deno.env.get('NOTIFY_SECRET') ?? '';
 // pointed the button at a public channel). Built purely from the bot username.
 const BOT_USERNAME = (Deno.env.get('BOT_USERNAME') ?? 'MeM_FARMbot').replace(/^@+/, '').trim();
 const TMA_URL = `https://t.me/${BOT_USERNAME}?startapp`;
+// public feed for completed deposits / withdrawals (TX_LOG events)
+const TX_CHANNEL = (Deno.env.get('TX_CHANNEL') ?? '@MEME_FARM_trans').trim();
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
@@ -310,6 +312,34 @@ async function sendTelegram(chatId: number | string, text: string, button: strin
   }
 }
 
+/** Plain channel post (no inline button) — used for the public tx feed. */
+async function sendChannel(text: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TX_CHANNEL,
+        text,
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** `💎 Депозит: 1.5 GRAM` + optional `🔗 <hash>` line — for the tx channel. */
+function buildTxLog(meta: Record<string, unknown>): string {
+  const kind = meta.kind === 'WITHDRAW' ? '🏧 *Вивід*' : '💎 *Депозит*';
+  const amount = String(meta.amount ?? '?');
+  const net = meta.kind === 'WITHDRAW' && meta.net != null ? ` (на руки ${meta.net})` : '';
+  const hash = meta.tx_hash ? `\n🔗 \`${String(meta.tx_hash)}\`` : '';
+  return `${kind}: *${amount}* GRAM${net}${hash}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (!BOT_TOKEN || !SUPABASE_URL || !SERVICE_ROLE) {
@@ -351,14 +381,25 @@ Deno.serve(async (req) => {
 
   for (const e of events ?? []) {
     const prof = (e as Record<string, unknown>).profiles as { telegram_id: number | null; notif_prefs: Record<string, unknown> } | null;
-    const type = (e as Record<string, unknown>).type as NotifType;
+    const type = (e as Record<string, unknown>).type as string;
     const uid = (e as Record<string, unknown>).user_id as string;
+    const eid = (e as Record<string, unknown>).id;
     let ok = false;
 
-    if (prof?.telegram_id && prefsAllow(prof.notif_prefs, type)) {
+    // TX_LOG → post to the public transactions channel, not to the user
+    if (type === 'TX_LOG') {
+      const meta = ((e as Record<string, unknown>).metadata as Record<string, unknown>) ?? {};
+      ok = await sendChannel(buildTxLog(meta));
+      if (ok) processed += 1;
+      else failed += 1;
+      await db.from('event_queue').update({ processed_at: new Date().toISOString() }).eq('id', eid);
+      continue;
+    }
+
+    if (prof?.telegram_id && prefsAllow(prof.notif_prefs, type as NotifType)) {
       const meta = ((e as Record<string, unknown>).metadata as Record<string, unknown>) ?? {};
       const lang = pickLang(meta.lang ?? prof.notif_prefs?.lang);
-      const { text, button } = buildMessage(type, meta, lang);
+      const { text, button } = buildMessage(type as NotifType, meta, lang);
       ok = await sendTelegram(prof.telegram_id, text, button);
       await db.from('notification_logs').insert({ user_id: uid, type, status: ok ? 'SENT' : 'FAILED' });
       if (ok) processed += 1;
