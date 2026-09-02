@@ -818,7 +818,8 @@ export async function submitAmbassadorPost(postLink: string): Promise<void> {
 // --- ambassador (admin) -----------------------------------------------------
 
 export async function adminListAmbassadorApplications(): Promise<AdminAmbassadorApplication[]> {
-  const { data, error } = await client().rpc('admin_list_ambassador_applications');
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_list_ambassador_applications', { p_admin_id: uid });
   if (error) throw error;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
@@ -838,7 +839,9 @@ export async function adminSetAmbassadorApplicationStatus(
   id: string,
   status: 'APPROVED' | 'REJECTED',
 ): Promise<void> {
+  const uid = await requireUserId();
   const { error } = await client().rpc('admin_set_ambassador_application_status', {
+    p_admin_id: uid,
     p_id: id,
     p_status: status,
   });
@@ -846,7 +849,8 @@ export async function adminSetAmbassadorApplicationStatus(
 }
 
 export async function adminListAmbassadorPosts(): Promise<AdminAmbassadorPost[]> {
-  const { data, error } = await client().rpc('admin_list_ambassador_posts');
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_list_ambassador_posts', { p_admin_id: uid });
   if (error) throw error;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
@@ -865,7 +869,9 @@ export async function adminSetAmbassadorPostStatus(
   status: 'APPROVED' | 'REJECTED',
   comment?: string,
 ): Promise<void> {
+  const uid = await requireUserId();
   const { error } = await client().rpc('admin_set_ambassador_post_status', {
+    p_admin_id: uid,
     p_id: id,
     p_status: status,
     p_comment: comment ?? null,
@@ -877,7 +883,9 @@ export async function adminGrantAmbassadorDeposit(
   userId: string,
   amount: number,
 ): Promise<number> {
+  const uid = await requireUserId();
   const { data, error } = await client().rpc('admin_grant_ambassador_deposit', {
+    p_admin_id: uid,
     p_user_id: userId,
     p_amount: amount,
   });
@@ -887,7 +895,8 @@ export async function adminGrantAmbassadorDeposit(
 }
 
 export async function adminGetAmbassadorStats(): Promise<AmbassadorStatRow[]> {
-  const { data, error } = await client().rpc('admin_get_ambassador_stats');
+  const uid = await requireUserId();
+  const { data, error } = await client().rpc('admin_get_ambassador_stats', { p_admin_id: uid });
   if (error) throw error;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
     userId: String(r.user_id),
