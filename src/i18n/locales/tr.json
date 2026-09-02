@@ -236,7 +236,9 @@
     "opened": "Açıldı",
     "farmPower": "Çiftlik gücü",
     "uniques": "{n} benzersiz",
-    "nothingFound": "Filtreyle eşleşen bir şey yok"
+    "nothingFound": "Filtreyle eşleşen bir şey yok",
+    "farmed": "Toplandı",
+    "farmMaxed": "Doldu"
   },
   "settings": {
     "title": "Ayarlar",

@@ -236,7 +236,9 @@
     "opened": "باز شد",
     "farmPower": "قدرت مزرعه",
     "uniques": "{n} یکتا",
-    "nothingFound": "چیزی با فیلتر مطابقت ندارد"
+    "nothingFound": "چیزی با فیلتر مطابقت ندارد",
+    "farmed": "فارم‌شده",
+    "farmMaxed": "حداکثر"
   },
   "settings": {
     "title": "تنظیمات",

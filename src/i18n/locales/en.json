@@ -263,7 +263,9 @@
     "opened": "Opened",
     "farmPower": "Farm power",
     "uniques": "{n} uniques",
-    "nothingFound": "Nothing matches the filter"
+    "nothingFound": "Nothing matches the filter",
+    "farmed": "Farmed",
+    "farmMaxed": "Maxed out"
   },
   "settings": {
     "title": "Settings",

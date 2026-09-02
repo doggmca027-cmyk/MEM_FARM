@@ -13,6 +13,14 @@ export const TIER_COST: Record<TierId, number> = {
 
 export const TIER_IDS: TierId[] = [1, 2, 3, 4, 5, 6];
 
+/**
+ * Lifetime farming cap for a card: 2× the tier's roll cost. A card yields 0
+ * once it has farmed this much total, no matter how far it's been merged.
+ */
+export function farmEarnCap(tier: number): number {
+  return 2 * 2 ** (tier - 1);
+}
+
 /** 5 slots per tier — one card per rarity grade. */
 export const CARD_SLOTS: CardSlot[] = [1, 2, 3, 4, 5];
 export const SLOTS_PER_TIER = 5;

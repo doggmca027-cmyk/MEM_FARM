@@ -236,7 +236,9 @@
     "opened": "Abierto",
     "farmPower": "Poder de granja",
     "uniques": "{n} únicas",
-    "nothingFound": "Nada coincide con el filtro"
+    "nothingFound": "Nada coincide con el filtro",
+    "farmed": "Farmeado",
+    "farmMaxed": "Al máximo"
   },
   "settings": {
     "title": "Ajustes",

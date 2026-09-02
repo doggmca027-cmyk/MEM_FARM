@@ -236,7 +236,9 @@
     "opened": "Dibuka",
     "farmPower": "Farm power",
     "uniques": "{n} unik",
-    "nothingFound": "Tidak ada yang cocok dengan filter"
+    "nothingFound": "Tidak ada yang cocok dengan filter",
+    "farmed": "Ditambang",
+    "farmMaxed": "Maksimal"
   },
   "settings": {
     "title": "Pengaturan",

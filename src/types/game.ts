@@ -24,6 +24,10 @@ export interface MemeCharacter {
   /** PvP power right now — base * (merge-level + study-level contributions). */
   power: number;
   imageUrl: string;
+  /** GRAM this instance has farmed over its whole life. */
+  lifetimeEarned: number;
+  /** Lifetime farm cap = 2 × tier roll cost; the card yields 0 once reached. */
+  earnCap: number;
   /** Which gacha tier / card this instance came from. */
   tier: TierId;
   cardSlot: CardSlot;

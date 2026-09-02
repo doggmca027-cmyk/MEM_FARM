@@ -15,7 +15,7 @@ import type {
   AmbassadorStatRow,
   AmbStatus,
 } from '../types/ambassador';
-import { TIER_COST, TIER_IDS } from '../data/tiers';
+import { TIER_COST, TIER_IDS, farmEarnCap } from '../data/tiers';
 import { readTelegramUser } from '../telegram/telegram';
 import type { Transaction, TransactionStatus, TransactionType } from '../types/finance';
 
@@ -139,6 +139,7 @@ interface UserCharacterRow {
   study_level: number | null;
   current_income_day: string;
   current_power: number | null;
+  lifetime_earned: string | null;
   is_equipped: boolean;
   character_templates: TemplateRow | null;
 }
@@ -180,6 +181,8 @@ function toCharacter(row: UserCharacterRow): MemeCharacter {
     basePower,
     power: row.current_power != null ? num(row.current_power) : basePower,
     imageUrl: tpl?.image_url ?? '',
+    lifetimeEarned: num(row.lifetime_earned),
+    earnCap: farmEarnCap(tier),
     tier,
     cardSlot,
   };
@@ -463,7 +466,7 @@ export async function fetchFarmData(): Promise<FarmData> {
     db
       .from('user_characters')
       .select(
-        'id, template_id, level, study_level, current_income_day, current_power, is_equipped, character_templates(*)',
+        'id, template_id, level, study_level, current_income_day, current_power, lifetime_earned, is_equipped, character_templates(*)',
       )
       .eq('user_id', uid),
   ]);
@@ -478,7 +481,10 @@ export async function fetchFarmData(): Promise<FarmData> {
   const characters = charRows.map(toCharacter);
 
   const incomePerDay = charRows
-    .filter((r) => r.is_equipped)
+    .filter((r) => {
+      const cap = farmEarnCap((r.character_templates?.tier ?? 1) as number);
+      return r.is_equipped && num(r.lifetime_earned) < cap;
+    })
     .reduce((sum, r) => sum + num(r.current_income_day), 0);
 
   const tiers: TierRow[] = TIER_IDS.map((tier) => {

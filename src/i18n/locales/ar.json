@@ -236,7 +236,9 @@
     "opened": "مفتوح",
     "farmPower": "قوة المزرعة",
     "uniques": "{n} فريدة",
-    "nothingFound": "لا شيء يطابق عامل التصفية"
+    "nothingFound": "لا شيء يطابق عامل التصفية",
+    "farmed": "تم الجمع",
+    "farmMaxed": "الحد الأقصى"
   },
   "settings": {
     "title": "الإعدادات",

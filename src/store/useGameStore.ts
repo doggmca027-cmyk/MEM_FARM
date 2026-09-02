@@ -16,7 +16,7 @@ import { applyDir, isLang, loadLang, saveLang, type LangCode } from '../i18n';
 import { isSameUtcDay, utcDaysBetween } from '../lib/time';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { readTelegramUser } from '../telegram/telegram';
-import { TIER_COST, TIER_IDS, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
+import { TIER_COST, TIER_IDS, farmEarnCap, tierPool, rollTierCard, type GachaCard } from '../data/tiers';
 import { DEFAULT_QUESTS, STREAK_DAYS } from '../data/quests';
 import {
   adminBanUser,
@@ -217,11 +217,17 @@ function bumpQuests(quests: Quest[], id: QuestId, n = 1): Quest[] {
 
 // --- income math --------------------------------------------------------
 
-/** Sum of every owned character's daily income across all tiers. */
+/** True once a card has hit its lifetime farming cap (yields 0 from then on). */
+export function isFarmCapped(c: MemeCharacter): boolean {
+  return c.lifetimeEarned >= c.earnCap;
+}
+
+/** Sum of daily income across all tiers — capped cards contribute nothing. */
 function totalIncome(tiers: TierRow[]): number {
   return round4(
     tiers.reduce(
-      (sum, r) => sum + r.characters.reduce((s, c) => s + c.currentIncome, 0),
+      (sum, r) =>
+        sum + r.characters.reduce((s, c) => s + (isFarmCapped(c) ? 0 : c.currentIncome), 0),
       0,
     ),
   );
@@ -240,6 +246,8 @@ function characterFromCard(card: GachaCard): MemeCharacter {
     basePower: card.power,
     power: card.power,
     imageUrl: '',
+    lifetimeEarned: 0,
+    earnCap: farmEarnCap(card.tier),
     tier: card.tier,
     cardSlot: card.slot,
   };
@@ -1265,6 +1273,10 @@ export interface CollectionGroup {
   byLevel: Record<number, number>;
   /** Highest level with ≥2 instances (mergeable), or 0. */
   mergeableLevel: number;
+  /** GRAM farmed so far, summed over every instance in the group. */
+  farmed: number;
+  /** Lifetime farm cap, summed over every instance in the group. */
+  farmCap: number;
 }
 
 /** Owned characters grouped by name, richest first. */
@@ -1273,11 +1285,13 @@ export function groupCollection(tiers: TierRow[]): CollectionGroup[] {
   for (const c of flattenCharacters(tiers)) {
     let g = map.get(c.name);
     if (!g) {
-      g = { key: c.name, sample: c, count: 0, byLevel: {}, mergeableLevel: 0 };
+      g = { key: c.name, sample: c, count: 0, byLevel: {}, mergeableLevel: 0, farmed: 0, farmCap: 0 };
       map.set(c.name, g);
     }
     g.count += 1;
     g.byLevel[c.level] = (g.byLevel[c.level] ?? 0) + 1;
+    g.farmed = round4(g.farmed + c.lifetimeEarned);
+    g.farmCap += c.earnCap;
     if (c.currentIncome > g.sample.currentIncome) g.sample = c;
   }
   for (const g of map.values()) {

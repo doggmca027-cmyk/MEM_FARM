@@ -18,6 +18,7 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
   const c = group.sample;
   const hex = RARITY_HEX[c.rarity];
   const canMerge = group.mergeableLevel > 0;
+  const maxed = group.farmCap > 0 && group.farmed >= group.farmCap;
 
   return (
     <motion.div
@@ -67,6 +68,22 @@ export function CollectionCard({ group, index, onStudy, onMerge }: Props) {
             <Zap className="h-3 w-3" strokeWidth={3} />
             {formatNum(c.power)}
           </span>
+        </div>
+      </div>
+
+      {/* lifetime farm cap (2× tier roll cost, summed over instances) */}
+      <div className="relative mt-1.5">
+        <div className="flex items-center justify-between text-[8px] font-extrabold uppercase text-white/40">
+          <span>{maxed ? t('collection.farmMaxed') : t('collection.farmed')}</span>
+          <span className="dir-ltr">
+            {fmtGram(group.farmed, 2)} / {fmtGram(group.farmCap, 0)}
+          </span>
+        </div>
+        <div className="mt-0.5 h-1 overflow-hidden rounded-full border border-black bg-farm-deep">
+          <div
+            className={maxed ? 'h-full bg-neon-pink' : 'h-full bg-neon-lime'}
+            style={{ width: `${group.farmCap ? Math.min(100, (group.farmed / group.farmCap) * 100) : 0}%` }}
+          />
         </div>
       </div>
 
