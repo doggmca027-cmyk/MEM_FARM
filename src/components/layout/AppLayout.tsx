@@ -4,6 +4,7 @@ import { useGameStore, type NavTab } from '../../store/useGameStore';
 import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { Toast } from '../ui/Toast';
 import { FarmHubScreen } from '../../screens/FarmHubScreen';
 import { QuestsScreen } from '../../screens/QuestsScreen';
 import { RaidScreen } from '../../screens/RaidScreen';
@@ -60,6 +61,7 @@ export function AppLayout() {
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {adminOpen && isAdmin && <AdminScreen />}
+      <Toast />
     </div>
   );
 }
