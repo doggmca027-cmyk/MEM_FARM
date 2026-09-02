@@ -188,7 +188,8 @@
     "topUp": "Isi {n} GRAM",
     "opening": "Membuka dompet…",
     "needAuth": "Buka aplikasi di dalam Telegram untuk deposit",
-    "txRejected": "Transaksi ditolak"
+    "txRejected": "Transaksi ditolak",
+    "errMin": "Deposit minimum {n} GRAM"
   },
   "withdraw": {
     "title": "Tarik GRAM",
@@ -199,7 +200,7 @@
     "sum": "Jumlah",
     "fee": "Biaya",
     "youGet": "Kamu terima",
-    "feeNote": "Biaya: max({min}, jumlah × 2%) · penarikan min {minw} · 1 per 24 jam",
+    "feeNote": "Biaya: max({min}, jumlah × 10%) · penarikan min {minw} · 1 per 24 jam",
     "errBadAmount": "Jumlah tidak valid",
     "errMin": "Minimum {n} GRAM",
     "errInsufficient": "Dana tidak cukup",

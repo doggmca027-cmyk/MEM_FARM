@@ -41,7 +41,10 @@ export function FarmScreen() {
 
   const cycle = farm.nextClaimAt - farm.lastClaimAt || 1;
   const progress = Math.min(1, Math.max(0, (Date.now() - farm.lastClaimAt) / cycle));
-  const canClaim = (done || farm.claimableGram > 0) && farm.claimableGram > 0;
+  // The server only settles a claim once the 8h cycle is complete
+  // (claim_farm_income raises "not ready" before next_claim_at), so the button
+  // must wait for `done` too — not just for something to have accrued.
+  const canClaim = done && farm.claimableGram > 0;
 
   const onClaim = () => {
     if (!canClaim) return;

@@ -215,7 +215,8 @@
     "topUp": "Top up {n} GRAM",
     "opening": "Opening wallet…",
     "needAuth": "Open the app inside Telegram to deposit",
-    "txRejected": "Transaction rejected"
+    "txRejected": "Transaction rejected",
+    "errMin": "Minimum deposit {n} GRAM"
   },
   "withdraw": {
     "title": "Withdraw GRAM",
@@ -226,7 +227,7 @@
     "sum": "Amount",
     "fee": "Fee",
     "youGet": "You get",
-    "feeNote": "Fee: max({min}, amount × 2%) · min withdrawal {minw} · 1 per 24h",
+    "feeNote": "Fee: max({min}, amount × 10%) · min withdrawal {minw} · 1 per 24h",
     "errBadAmount": "Invalid amount",
     "errMin": "Minimum {n} GRAM",
     "errInsufficient": "Insufficient funds",

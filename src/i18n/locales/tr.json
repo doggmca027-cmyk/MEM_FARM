@@ -188,7 +188,8 @@
     "topUp": "{n} GRAM yükle",
     "opening": "Cüzdan açılıyor…",
     "needAuth": "Yatırmak için uygulamayı Telegram içinde aç",
-    "txRejected": "İşlem reddedildi"
+    "txRejected": "İşlem reddedildi",
+    "errMin": "En az {n} GRAM depozito"
   },
   "withdraw": {
     "title": "GRAM Çek",
@@ -199,7 +200,7 @@
     "sum": "Tutar",
     "fee": "Ücret",
     "youGet": "Alacağın",
-    "feeNote": "Ücret: max({min}, tutar × %2) · min çekim {minw} · 24 saatte 1",
+    "feeNote": "Ücret: max({min}, tutar × %10) · min çekim {minw} · 24 saatte 1",
     "errBadAmount": "Geçersiz tutar",
     "errMin": "En az {n} GRAM",
     "errInsufficient": "Yetersiz bakiye",

@@ -188,7 +188,8 @@
     "topUp": "Recargar {n} GRAM",
     "opening": "Abriendo la cartera…",
     "needAuth": "Abre la app dentro de Telegram para depositar",
-    "txRejected": "Transacción rechazada"
+    "txRejected": "Transacción rechazada",
+    "errMin": "Depósito mínimo {n} GRAM"
   },
   "withdraw": {
     "title": "Retirar GRAM",
@@ -199,7 +200,7 @@
     "sum": "Importe",
     "fee": "Comisión",
     "youGet": "Recibes",
-    "feeNote": "Comisión: max({min}, importe × 2%) · retiro mín {minw} · 1 cada 24 h",
+    "feeNote": "Comisión: max({min}, importe × 10%) · retiro mín {minw} · 1 cada 24 h",
     "errBadAmount": "Importe no válido",
     "errMin": "Mínimo {n} GRAM",
     "errInsufficient": "Fondos insuficientes",

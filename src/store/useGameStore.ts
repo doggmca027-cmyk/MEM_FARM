@@ -98,12 +98,15 @@ function newInstanceId(): string {
 
 // --- withdrawal rules --------------------------------------------------
 
-export const WITHDRAW_MIN = 0.3; // GRAM
+export const WITHDRAW_MIN = 0.5; // GRAM
 export const WITHDRAW_FEE_MIN = 0.01; // GRAM
-export const WITHDRAW_FEE_PCT = 0.02; // 2%
+export const WITHDRAW_FEE_PCT = 0.1; // 10%
 export const WITHDRAW_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-/** Platform fee for a withdrawal: max(0.01, amount * 2%). */
+/** Minimum deposit, GRAM (enforced in the UI). */
+export const DEPOSIT_MIN = 1;
+
+/** Platform fee for a withdrawal: max(0.01, amount * 10%). */
 export function withdrawalFee(amount: number): number {
   return round4(Math.max(WITHDRAW_FEE_MIN, amount * WITHDRAW_FEE_PCT));
 }

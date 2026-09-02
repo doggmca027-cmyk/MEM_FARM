@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
-import { useGameStore } from '../../store/useGameStore';
+import { DEPOSIT_MIN, useGameStore } from '../../store/useGameStore';
 import { fmtGram, shortAddress } from '../../lib/format';
 import { gramToNano, textCommentPayload, TREASURY_ADDRESS, validUntil } from '../../lib/ton';
 import { firePop } from '../../lib/confetti';
@@ -35,7 +35,7 @@ export function DepositModal({ open, onClose }: Props) {
     setRaw(String(n));
   };
 
-  const valid = amount > 0 && Number.isFinite(amount);
+  const valid = Number.isFinite(amount) && amount >= DEPOSIT_MIN;
   // the deposit is attributed by the Telegram ID in the transfer comment
   const memo = String(profile?.telegramId ?? '').replace(/\D+/g, '');
 
@@ -46,7 +46,12 @@ export function DepositModal({ open, onClose }: Props) {
       tonConnectUI.openModal();
       return;
     }
-    if (!valid || busy) return;
+    if (busy) return;
+    if (!valid) {
+      haptic.notify('error');
+      setErr(t('deposit.errMin', { n: fmtGram(DEPOSIT_MIN) }));
+      return;
+    }
     if (!memo) {
       haptic.notify('error');
       setErr(t('deposit.needAuth'));
