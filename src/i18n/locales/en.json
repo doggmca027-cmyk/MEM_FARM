@@ -290,7 +290,8 @@
     "insufficient": "Not enough GRAM",
     "nothingToClaim": "Nothing to claim",
     "mergeNeedTwo": "Need 2 identical cards of the same level",
-    "badAddress": "Invalid wallet address"
+    "badAddress": "Invalid wallet address",
+    "adLimit": "Daily view limit for this network is used up"
   },
   "support": {
     "section": "Support",
@@ -313,7 +314,7 @@
   },
   "ads": {
     "title": "Watch ads",
-    "hint": "Watch a video and earn GRAM. No limit — as long as ads are available.",
+    "hint": "Watch a video and earn GRAM. Up to 20 views per day per network.",
     "watch": "Watch",
     "loading": "Loading…",
     "pending": "Thanks! Reward comes after verification.",

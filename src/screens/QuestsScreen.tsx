@@ -236,10 +236,11 @@ function AdsBlock() {
   const mode = useGameStore((s) => s.mode);
   const hydrate = useGameStore((s) => s.hydrate);
   const [busy, setBusy] = useState<AdNetworkId | null>(null);
-  const [note, setNote] = useState<{ id: AdNetworkId; ok: boolean } | null>(null);
+  const [note, setNote] = useState<{ id: AdNetworkId; ok: boolean; limit?: boolean } | null>(null);
+  const [limited, setLimited] = useState<Set<AdNetworkId>>(new Set());
 
   const watch = async (net: AdNetwork) => {
-    if (mode !== 'live' || busy) return;
+    if (mode !== 'live' || busy || limited.has(net.id)) return;
     setBusy(net.id);
     setNote(null);
     try {
@@ -250,9 +251,11 @@ function AdsBlock() {
       // best-effort: reflect the reward the moment the postback lands,
       // without waiting for the next natural navigation/hydrate
       window.setTimeout(() => void hydrate(), 4000);
-    } catch {
+    } catch (e) {
       haptic.notify('error');
-      setNote({ id: net.id, ok: false });
+      const isLimit = String((e as Error)?.message ?? '').toLowerCase().includes('daily ad limit');
+      if (isLimit) setLimited((s) => new Set(s).add(net.id));
+      setNote({ id: net.id, ok: false, limit: isLimit });
     } finally {
       setBusy(null);
     }
@@ -265,7 +268,7 @@ function AdsBlock() {
       <ul className="space-y-2">
         {AD_NETWORKS.map((net) => {
           const ready = isAdNetworkConfigured(net.id);
-          const disabled = !ready || mode !== 'live' || busy !== null;
+          const disabled = !ready || mode !== 'live' || busy !== null || limited.has(net.id);
           return (
             <li
               key={net.id}
@@ -284,7 +287,7 @@ function AdsBlock() {
                   {!ready && <div className="text-[10px] text-white/35">{t('ads.comingSoon')}</div>}
                   {note?.id === net.id && (
                     <div className={`text-[10px] font-bold ${note.ok ? 'text-neon-lime' : 'text-neon-pink'}`}>
-                      {note.ok ? t('ads.pending') : t('ads.failed')}
+                      {note.ok ? t('ads.pending') : note.limit ? t('errors.adLimit') : t('ads.failed')}
                     </div>
                   )}
                 </div>

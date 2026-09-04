@@ -290,7 +290,8 @@
     "insufficient": "GRAM insuficiente",
     "nothingToClaim": "Nada que reclamar",
     "mergeNeedTwo": "Se necesitan 2 cartas idénticas del mismo nivel",
-    "badAddress": "Dirección de cartera no válida"
+    "badAddress": "Dirección de cartera no válida",
+    "adLimit": "Límite diario de vistas de esta red agotado"
   },
   "support": {
     "section": "Soporte",
@@ -313,7 +314,7 @@
   },
   "ads": {
     "title": "Mira anuncios",
-    "hint": "Mira un video y gana GRAM. Sin límite — mientras haya anuncios.",
+    "hint": "Mira un video y gana GRAM. Hasta 20 vistas al día por red.",
     "watch": "Ver",
     "loading": "Cargando…",
     "pending": "¡Gracias! La recompensa llega tras la verificación.",

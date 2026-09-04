@@ -431,6 +431,7 @@ function rpcErr(err: unknown, lang: LangCode): string {
   if (raw.includes('nothing to claim')) return T('nothingToClaim');
   if (raw.includes('need 2 duplicates')) return T('mergeNeedTwo');
   if (raw.includes('invalid wallet address')) return T('badAddress');
+  if (raw.includes('daily ad limit')) return T('adLimit');
   return T('generic');
 }
 

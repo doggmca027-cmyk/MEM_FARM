@@ -290,7 +290,8 @@
     "insufficient": "Yeterli GRAM yok",
     "nothingToClaim": "Alınacak bir şey yok",
     "mergeNeedTwo": "Aynı seviyeden 2 özdeş kart gerekli",
-    "badAddress": "Geçersiz cüzdan adresi"
+    "badAddress": "Geçersiz cüzdan adresi",
+    "adLimit": "Bu ağın günlük izleme limiti doldu"
   },
   "support": {
     "section": "Destek",
@@ -313,7 +314,7 @@
   },
   "ads": {
     "title": "Reklam izle",
-    "hint": "Video izle, GRAM kazan. Limit yok — reklam olduğu sürece.",
+    "hint": "Video izle, GRAM kazan. Ağ başına günde en fazla 20 izleme.",
     "watch": "İzle",
     "loading": "Yükleniyor…",
     "pending": "Teşekkürler! Ödül doğrulamadan sonra gelir.",

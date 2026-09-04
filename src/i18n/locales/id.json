@@ -290,7 +290,8 @@
     "insufficient": "GRAM tidak cukup",
     "nothingToClaim": "Tidak ada yang bisa diambil",
     "mergeNeedTwo": "Butuh 2 kartu identik dengan level sama",
-    "badAddress": "Alamat dompet tidak valid"
+    "badAddress": "Alamat dompet tidak valid",
+    "adLimit": "Batas tontonan harian untuk jaringan ini sudah habis"
   },
   "support": {
     "section": "Dukungan",
@@ -313,7 +314,7 @@
   },
   "ads": {
     "title": "Tonton iklan",
-    "hint": "Tonton video dan dapatkan GRAM. Tanpa batas — selama iklan tersedia.",
+    "hint": "Tonton video dan dapatkan GRAM. Maks 20 tayangan/hari per jaringan.",
     "watch": "Tonton",
     "loading": "Memuat…",
     "pending": "Makasih! Hadiah setelah verifikasi.",
