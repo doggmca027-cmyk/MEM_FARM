@@ -15,11 +15,23 @@ export const AD_NETWORKS: AdNetwork[] = [
   { id: 'richads', name: 'RichAds', reward: 0.002 },
 ];
 
+/**
+ * Adsgram block ids, comma-separated in VITE_ADSGRAM_BLOCK_ID — tried in
+ * order as a fallback chain so one sold-out block doesn't stop the show.
+ * Every id must have the SAME Reward URL configured on Adsgram's side.
+ */
+export function adsgramBlockIds(): string[] {
+  return String(import.meta.env.VITE_ADSGRAM_BLOCK_ID ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** True once this network's publisher id is set (VITE_* env), i.e. wireable. */
 export function isAdNetworkConfigured(id: AdNetworkId): boolean {
   switch (id) {
     case 'adsgram':
-      return Boolean(import.meta.env.VITE_ADSGRAM_BLOCK_ID);
+      return adsgramBlockIds().length > 0;
     case 'monetag':
       return Boolean(import.meta.env.VITE_MONETAG_ZONE_ID);
     case 'gigapub':

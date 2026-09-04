@@ -24,20 +24,42 @@ function loadScriptOnce(id: string, src: string, attrs?: Record<string, string>)
 // --- Adsgram — https://docs.adsgram.ai ---------------------------------
 // window.Adsgram.init({ blockId }) -> controller; controller.show() resolves
 // once the ad was watched to the end. Reward reaches us via their own GET
-// postback to /functions/v1/adsgram-postback (no click_id passthrough).
+// postback to /functions/v1/adsgram-postback (no click_id passthrough, so
+// every blockId must have that same Reward URL configured on Adsgram's side).
+//
+// Fallback rotation: try each blockId in order and stop at the first one
+// that actually shows an ad — covers "this unit has no fill right now" so a
+// user isn't blocked just because ONE block ran dry.
 interface AdsgramController {
   show(): Promise<{ done: boolean }>;
 }
-let adsgramController: AdsgramController | null = null;
+const adsgramControllers = new Map<string, AdsgramController>();
 
-export async function showAdsgram(blockId: string): Promise<void> {
+export async function showAdsgram(blockIds: string[]): Promise<void> {
+  const ids = blockIds.map((id) => id.trim()).filter(Boolean);
+  if (ids.length === 0) throw new Error('Adsgram not configured');
+
   await loadScriptOnce('adsgram-sdk', 'https://sad.adsgram.ai/js/sad.min.js');
   const w = window as unknown as {
     Adsgram?: { init(opts: { blockId: string }): AdsgramController };
   };
   if (!w.Adsgram) throw new Error('Adsgram SDK unavailable');
-  if (!adsgramController) adsgramController = w.Adsgram.init({ blockId });
-  await adsgramController.show();
+
+  let lastErr: unknown = new Error('Adsgram: no fill');
+  for (const blockId of ids) {
+    let controller = adsgramControllers.get(blockId);
+    if (!controller) {
+      controller = w.Adsgram.init({ blockId });
+      adsgramControllers.set(blockId, controller);
+    }
+    try {
+      await controller.show();
+      return; // watched — stop rotating
+    } catch (err) {
+      lastErr = err; // no fill / closed early — try the next block
+    }
+  }
+  throw lastErr;
 }
 
 // --- Monetag — https://docs.monetag.com ---------------------------------
