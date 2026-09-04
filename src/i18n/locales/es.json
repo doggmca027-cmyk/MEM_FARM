@@ -180,7 +180,8 @@
     "REFUND": "Reembolso",
     "WAGER_STAKE": "Apuesta PvP",
     "WAGER_PAYOUT": "Pago PvP",
-    "AMBASSADOR_REWARD": "Embajador"
+    "AMBASSADOR_REWARD": "Embajador",
+    "AD_REWARD": "Anuncio"
   },
   "deposit": {
     "title": "Depositar GRAM",
@@ -309,5 +310,14 @@
     "claim": "Reclamar",
     "claimed": "Reclamado",
     "onlineOnly": "Inicia sesión con Telegram para reclamar la recompensa."
+  },
+  "ads": {
+    "title": "Mira anuncios",
+    "hint": "Mira un video y gana GRAM. Sin límite — mientras haya anuncios.",
+    "watch": "Ver",
+    "loading": "Cargando…",
+    "pending": "¡Gracias! La recompensa llega tras la verificación.",
+    "failed": "Anuncio no disponible, inténtalo de nuevo.",
+    "comingSoon": "Próximamente"
   }
 }

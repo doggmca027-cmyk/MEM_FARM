@@ -180,7 +180,8 @@
     "REFUND": "İade",
     "WAGER_STAKE": "PvP bahsi",
     "WAGER_PAYOUT": "PvP ödemesi",
-    "AMBASSADOR_REWARD": "Elçi"
+    "AMBASSADOR_REWARD": "Elçi",
+    "AD_REWARD": "Reklam"
   },
   "deposit": {
     "title": "GRAM Yatır",
@@ -309,5 +310,14 @@
     "claim": "Al",
     "claimed": "Alındı",
     "onlineOnly": "Ödülü almak için Telegram ile giriş yap."
+  },
+  "ads": {
+    "title": "Reklam izle",
+    "hint": "Video izle, GRAM kazan. Limit yok — reklam olduğu sürece.",
+    "watch": "İzle",
+    "loading": "Yükleniyor…",
+    "pending": "Teşekkürler! Ödül doğrulamadan sonra gelir.",
+    "failed": "Reklam yok, tekrar dene.",
+    "comingSoon": "Yakında"
   }
 }

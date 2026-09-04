@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { CalendarDays, CheckCircle2, Check, Circle, ExternalLink, Flame, Gift, Megaphone, Sparkles } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Check, Circle, ExternalLink, Flame, Gift, Megaphone, Sparkles, Tv } from 'lucide-react';
 import type { Reward } from '../types/quests';
 import {
   selectCanCheckIn,
@@ -10,7 +10,9 @@ import {
 } from '../store/useGameStore';
 import { STREAK_DAYS } from '../data/quests';
 import { SOCIAL_TASKS } from '../data/social';
-import { fetchSocialClaims } from '../services/api';
+import { AD_NETWORKS, isAdNetworkConfigured, type AdNetwork, type AdNetworkId } from '../data/ads';
+import { fetchSocialClaims, createAdView } from '../services/api';
+import { showAdsgram, showGigapub, showMonetag, showRichAds } from '../lib/adSdks';
 import { openTelegramLink } from '../telegram/telegram';
 import { fmtGram, fmtHMS } from '../lib/format';
 import { msUntilUtcMidnight } from '../lib/time';
@@ -206,7 +208,101 @@ export function QuestsScreen() {
       </section>
 
       <SocialTasks />
+      <AdsBlock />
     </div>
+  );
+}
+
+// ===== REWARDED VIDEO ADS (Adsgram / Monetag / GigaPub / RichAds) =====
+// No daily cap. Watching only opens a PENDING ad_views row — the reward is
+// credited exclusively by the network's own server-side postback once it
+// confirms the view; if that postback never arrives, nothing is paid.
+
+async function showNetworkAd(net: AdNetworkId, clickId: string): Promise<void> {
+  switch (net) {
+    case 'adsgram':
+      return showAdsgram(import.meta.env.VITE_ADSGRAM_BLOCK_ID as string);
+    case 'monetag':
+      return showMonetag(import.meta.env.VITE_MONETAG_ZONE_ID as string, clickId);
+    case 'gigapub':
+      return showGigapub(import.meta.env.VITE_GIGAPUB_PROJECT_ID as string);
+    case 'richads':
+      return showRichAds();
+  }
+}
+
+function AdsBlock() {
+  const t = useT();
+  const mode = useGameStore((s) => s.mode);
+  const hydrate = useGameStore((s) => s.hydrate);
+  const [busy, setBusy] = useState<AdNetworkId | null>(null);
+  const [note, setNote] = useState<{ id: AdNetworkId; ok: boolean } | null>(null);
+
+  const watch = async (net: AdNetwork) => {
+    if (mode !== 'live' || busy) return;
+    setBusy(net.id);
+    setNote(null);
+    try {
+      const clickId = await createAdView(net.id);
+      await showNetworkAd(net.id, clickId);
+      haptic.notify('success');
+      setNote({ id: net.id, ok: true });
+      // best-effort: reflect the reward the moment the postback lands,
+      // without waiting for the next natural navigation/hydrate
+      window.setTimeout(() => void hydrate(), 4000);
+    } catch {
+      haptic.notify('error');
+      setNote({ id: net.id, ok: false });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="mb-2 font-display text-lg text-stroke">{t('ads.title')}</h2>
+      <div className="mb-2 text-[11px] text-white/45">{t('ads.hint')}</div>
+      <ul className="space-y-2">
+        {AD_NETWORKS.map((net) => {
+          const ready = isAdNetworkConfigured(net.id);
+          const disabled = !ready || mode !== 'live' || busy !== null;
+          return (
+            <li
+              key={net.id}
+              className="relative overflow-hidden rounded-2xl border-2 border-b-4 border-black border-b-black/40 bg-farm-card/70 p-3 backdrop-blur-md"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-stripes opacity-40" />
+              <div className="relative flex items-center gap-3">
+                <span className="grid h-9 w-9 flex-none place-items-center rounded-xl border-2 border-black bg-farm-deep">
+                  <Tv className="h-4 w-4 text-neon-cyan" strokeWidth={3} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold">{net.name}</div>
+                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-neon-lime dir-ltr">
+                    <GramIcon className="h-3 w-3" />+{fmtGram(net.reward, 3)}
+                  </div>
+                  {!ready && <div className="text-[10px] text-white/35">{t('ads.comingSoon')}</div>}
+                  {note?.id === net.id && (
+                    <div className={`text-[10px] font-bold ${note.ok ? 'text-neon-lime' : 'text-neon-pink'}`}>
+                      {note.ok ? t('ads.pending') : t('ads.failed')}
+                    </div>
+                  )}
+                </div>
+                <GameButton
+                  accent="cyan"
+                  disabled={disabled}
+                  className="flex-none text-[11px]"
+                  onClick={() => watch(net)}
+                >
+                  {busy === net.id ? t('ads.loading') : t('ads.watch')}
+                </GameButton>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {mode !== 'live' && <div className="mt-1.5 text-[10px] text-neon-pink">{t('social.onlineOnly')}</div>}
+    </section>
   );
 }
 

@@ -944,6 +944,23 @@ export async function claimSocialTask(taskId: string): Promise<number> {
   return num(r.new_available_gram);
 }
 
+// --- rewarded ads -------------------------------------------------------
+
+/**
+ * Open a PENDING ad_views row before invoking a network's SDK; returns the
+ * click_id to pass into that SDK (as `ymid`, etc.) so its postback can find
+ * this row again. The reward is credited server-side by the postback alone
+ * — this call never adds GRAM itself.
+ */
+export async function createAdView(network: string): Promise<string> {
+  const { data, error } = await client().rpc('create_ad_view', { p_network: network });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as { click_id?: string } | undefined;
+  const id = row?.click_id;
+  if (!id) throw new Error('no click_id returned');
+  return id;
+}
+
 // --- support chat (user) --------------------------------------------------
 
 export interface MySupportData {

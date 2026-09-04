@@ -180,7 +180,8 @@
     "REFUND": "Қайтару",
     "WAGER_STAKE": "PvP мөлшерлемесі",
     "WAGER_PAYOUT": "PvP ұтысы",
-    "AMBASSADOR_REWARD": "Елші"
+    "AMBASSADOR_REWARD": "Елші",
+    "AD_REWARD": "Жарнама"
   },
   "deposit": {
     "title": "GRAM депозиті",
@@ -309,5 +310,14 @@
     "claim": "Алу",
     "claimed": "Алынды",
     "onlineOnly": "Сыйлық алу үшін Telegram арқылы кір."
+  },
+  "ads": {
+    "title": "Жарнама көр",
+    "hint": "Видео көріп, GRAM ал. Шек жоқ — жарнама болғанша.",
+    "watch": "Көру",
+    "loading": "Жүктелуде…",
+    "pending": "Рақмет! Сыйлық — тексеруден кейін.",
+    "failed": "Жарнама қолжетімсіз, қайта көр.",
+    "comingSoon": "Жақында"
   }
 }

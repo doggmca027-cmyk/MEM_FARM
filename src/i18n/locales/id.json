@@ -180,7 +180,8 @@
     "REFUND": "Pengembalian",
     "WAGER_STAKE": "Taruhan PvP",
     "WAGER_PAYOUT": "Kemenangan PvP",
-    "AMBASSADOR_REWARD": "Duta"
+    "AMBASSADOR_REWARD": "Duta",
+    "AD_REWARD": "Iklan"
   },
   "deposit": {
     "title": "Setor GRAM",
@@ -309,5 +310,14 @@
     "claim": "Ambil",
     "claimed": "Diambil",
     "onlineOnly": "Masuk lewat Telegram untuk mengambil hadiah."
+  },
+  "ads": {
+    "title": "Tonton iklan",
+    "hint": "Tonton video dan dapatkan GRAM. Tanpa batas — selama iklan tersedia.",
+    "watch": "Tonton",
+    "loading": "Memuat…",
+    "pending": "Makasih! Hadiah setelah verifikasi.",
+    "failed": "Iklan tidak tersedia, coba lagi.",
+    "comingSoon": "Segera"
   }
 }

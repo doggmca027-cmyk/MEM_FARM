@@ -180,7 +180,8 @@
     "REFUND": "Refund",
     "WAGER_STAKE": "PvP stake",
     "WAGER_PAYOUT": "PvP payout",
-    "AMBASSADOR_REWARD": "Ambassador"
+    "AMBASSADOR_REWARD": "Ambassador",
+    "AD_REWARD": "Ad reward"
   },
   "ambassador": {
     "title": "Ambassador program",
@@ -309,5 +310,14 @@
     "claim": "Claim",
     "claimed": "Claimed",
     "onlineOnly": "Sign in via Telegram to claim the reward."
+  },
+  "ads": {
+    "title": "Watch ads",
+    "hint": "Watch a video and earn GRAM. No limit — as long as ads are available.",
+    "watch": "Watch",
+    "loading": "Loading…",
+    "pending": "Thanks! Reward comes after verification.",
+    "failed": "Ad unavailable, try again.",
+    "comingSoon": "Coming soon"
   }
 }
