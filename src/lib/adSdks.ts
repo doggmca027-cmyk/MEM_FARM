@@ -67,16 +67,33 @@ export async function showAdsgram(blockIds: string[]): Promise<void> {
 // window.show_<zoneId>({ ymid }) -> Promise. `ymid` is our click_id, echoed
 // back in the postback (see supabase/functions/monetag-postback — macro
 // name assumed `ymid`, verify against the Monetag dashboard).
-export async function showMonetag(zoneId: string, ymid: string): Promise<void> {
-  const fnName = `show_${zoneId}`;
-  await loadScriptOnce(`monetag-sdk-${zoneId}`, 'https://libtl.com/sdk.js', {
-    'data-zone': zoneId,
-    'data-sdk': fnName,
-  });
-  const w = window as unknown as Record<string, ((opts?: { ymid?: string }) => Promise<void>) | undefined>;
-  const show = w[fnName];
-  if (typeof show !== 'function') throw new Error('Monetag SDK unavailable');
-  await show({ ymid });
+//
+// Fallback rotation: try each zone in order, stop at the first one that
+// actually shows an ad — same "one unit sold out doesn't block the user"
+// idea as Adsgram. Every zone needs its own Postback URL configured on
+// Monetag's side (same URL, just repeated per zone).
+export async function showMonetag(zoneIds: string[], ymid: string): Promise<void> {
+  const ids = zoneIds.map((id) => id.trim()).filter(Boolean);
+  if (ids.length === 0) throw new Error('Monetag not configured');
+
+  let lastErr: unknown = new Error('Monetag: no fill');
+  for (const zoneId of ids) {
+    const fnName = `show_${zoneId}`;
+    try {
+      await loadScriptOnce(`monetag-sdk-${zoneId}`, 'https://libtl.com/sdk.js', {
+        'data-zone': zoneId,
+        'data-sdk': fnName,
+      });
+      const w = window as unknown as Record<string, ((opts?: { ymid?: string }) => Promise<void>) | undefined>;
+      const show = w[fnName];
+      if (typeof show !== 'function') throw new Error('Monetag SDK unavailable');
+      await show({ ymid });
+      return; // watched — stop rotating
+    } catch (err) {
+      lastErr = err; // no fill / closed early / load failure — try the next zone
+    }
+  }
+  throw lastErr;
 }
 
 // --- GigaPub — https://docs.giga.pub -------------------------------------

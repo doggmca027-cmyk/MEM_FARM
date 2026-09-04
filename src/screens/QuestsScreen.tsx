@@ -10,7 +10,7 @@ import {
 } from '../store/useGameStore';
 import { STREAK_DAYS } from '../data/quests';
 import { SOCIAL_TASKS } from '../data/social';
-import { AD_NETWORKS, adsgramBlockIds, isAdNetworkConfigured, type AdNetwork, type AdNetworkId } from '../data/ads';
+import { AD_NETWORKS, adsgramBlockIds, isAdNetworkConfigured, monetagZoneIds, type AdNetwork, type AdNetworkId } from '../data/ads';
 import { fetchSocialClaims, createAdView } from '../services/api';
 import { showAdsgram, showGigapub, showMonetag, showRichAds } from '../lib/adSdks';
 import { openTelegramLink } from '../telegram/telegram';
@@ -223,7 +223,7 @@ async function showNetworkAd(net: AdNetworkId, clickId: string): Promise<void> {
     case 'adsgram':
       return showAdsgram(adsgramBlockIds());
     case 'monetag':
-      return showMonetag(import.meta.env.VITE_MONETAG_ZONE_ID as string, clickId);
+      return showMonetag(monetagZoneIds(), clickId);
     case 'gigapub':
       return showGigapub(import.meta.env.VITE_GIGAPUB_PROJECT_ID as string);
     case 'richads':
