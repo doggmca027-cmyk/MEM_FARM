@@ -9,10 +9,10 @@ export interface AdNetwork {
 
 /** Up to 20 views/day per network (server-enforced in create_ad_view). */
 export const AD_NETWORKS: AdNetwork[] = [
-  { id: 'adsgram', name: 'Adsgram', reward: 0.002 },
-  { id: 'monetag', name: 'Monetag', reward: 0.002 },
-  { id: 'gigapub', name: 'GigaPub', reward: 0.002 },
-  { id: 'richads', name: 'RichAds', reward: 0.002 },
+  { id: 'adsgram', name: 'Adsgram', reward: 0.001 },
+  { id: 'monetag', name: 'Monetag', reward: 0.001 },
+  { id: 'gigapub', name: 'GigaPub', reward: 0.001 },
+  { id: 'richads', name: 'RichAds', reward: 0.001 },
 ];
 
 function idList(envKey: string): string[] {
