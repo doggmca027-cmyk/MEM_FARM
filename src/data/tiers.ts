@@ -34,15 +34,16 @@ export const SLOT_RARITY: Record<CardSlot, Rarity> = {
 };
 
 /**
- * Drop weights, percent (sum = 100).
- *   1..60 -> s1   61..85 -> s2   86..94 -> s3   95..98 -> s4   99..100 -> s5
+ * Drop weights, percent (sum = 100). Tuned for a ~28-day average payback
+ * (cost / E[income_per_day] is tier-invariant — see 20260930 migration).
+ *   1..57 -> s1   58..83 -> s2   84..92 -> s3   93..96 -> s4   97..100 -> s5
  */
 export const SLOT_WEIGHT: Record<CardSlot, number> = {
-  1: 60,
-  2: 25,
+  1: 57,
+  2: 26,
   3: 9,
   4: 4,
-  5: 2,
+  5: 4,
 };
 
 /** Tier 1 daily yield per card slot; every higher tier doubles it. */
@@ -108,10 +109,10 @@ export function tierPool(tier: TierId): GachaCard[] {
 /** Weighted 1..100 roll → a card slot (see `SLOT_WEIGHT`). */
 export function rollCardSlot(rng: () => number = Math.random): CardSlot {
   const n = Math.floor(rng() * 100) + 1; // 1..100
-  if (n <= 60) return 1;
-  if (n <= 85) return 2;
-  if (n <= 94) return 3;
-  if (n <= 98) return 4;
+  if (n <= 57) return 1;
+  if (n <= 83) return 2;
+  if (n <= 92) return 3;
+  if (n <= 96) return 4;
   return 5;
 }
 

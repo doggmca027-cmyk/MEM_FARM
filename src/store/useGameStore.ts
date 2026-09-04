@@ -159,9 +159,11 @@ export function mergeFee(tier: TierId): number {
 }
 
 /**
- * Hardcore merge roll — 15% success / 85% burn.
- *   roll 1..100 — 1..85  FAIL (material burns, survivor stays at level N)
- *              — 86..100 SUCCESS, then a sub-roll picks the level gain:
+ * Hardcore merge roll — 25% success / 75% burn (20260930: raised from 15%,
+ * safe post lifetime-cap since a merge always halves a card's cap headroom
+ * regardless of outcome — see the migration).
+ *   roll 1..100 — 1..75  FAIL (material burns, survivor stays at level N)
+ *              — 76..100 SUCCESS, then a sub-roll picks the level gain:
  *                  +1 (80%) · +2 (14%) · +3 (5%) · +4 (1%)
  */
 export function rollMerge(rng: () => number = Math.random): {
@@ -170,7 +172,7 @@ export function rollMerge(rng: () => number = Math.random): {
   roll: number;
 } {
   const n = Math.floor(rng() * 100) + 1;
-  if (n <= 85) return { status: 'FAIL', delta: 0, roll: n };
+  if (n <= 75) return { status: 'FAIL', delta: 0, roll: n };
   const s = Math.floor(rng() * 100) + 1;
   const delta = s <= 80 ? 1 : s <= 94 ? 2 : s <= 99 ? 3 : 4;
   return { status: delta === 1 ? 'SUCCESS' : 'CRIT', delta, roll: n };
