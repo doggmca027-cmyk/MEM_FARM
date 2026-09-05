@@ -15,6 +15,16 @@ export const AD_NETWORKS: AdNetwork[] = [
   { id: 'richads', name: 'RichAds', reward: 0.001 },
 ];
 
+/**
+ * Master switch for the whole "Watch ads" section. Off until
+ * VITE_ADS_ENABLED is "1"/"true" — flip it on Vercel + redeploy once
+ * every network is actually serving, no code change needed.
+ */
+export function adsSectionEnabled(): boolean {
+  const v = String(import.meta.env.VITE_ADS_ENABLED ?? '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
 function idList(envKey: string): string[] {
   return String((import.meta.env as Record<string, string | undefined>)[envKey] ?? '')
     .split(',')

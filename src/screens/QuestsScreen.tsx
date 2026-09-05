@@ -10,7 +10,7 @@ import {
 } from '../store/useGameStore';
 import { STREAK_DAYS } from '../data/quests';
 import { SOCIAL_TASKS } from '../data/social';
-import { AD_NETWORKS, adsgramBlockIds, isAdNetworkConfigured, monetagZoneIds, type AdNetwork, type AdNetworkId } from '../data/ads';
+import { AD_NETWORKS, adsSectionEnabled, adsgramBlockIds, isAdNetworkConfigured, monetagZoneIds, type AdNetwork, type AdNetworkId } from '../data/ads';
 import { fetchSocialClaims, createAdView } from '../services/api';
 import { showAdsgram, showGigapub, showMonetag, showRichAds } from '../lib/adSdks';
 import { openTelegramLink } from '../telegram/telegram';
@@ -208,7 +208,7 @@ export function QuestsScreen() {
       </section>
 
       <SocialTasks />
-      <AdsBlock />
+      {adsSectionEnabled() && <AdsBlock />}
     </div>
   );
 }
